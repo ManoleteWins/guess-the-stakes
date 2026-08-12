@@ -9,13 +9,29 @@ Everything runs in the page. Hands are never uploaded — there is no server.
 ## Sharing a hand
 
 The **Share** button packs the hands into the link itself
-(`…/#h=<hands>`), so opening it replays the same hand with the stakes still
+(`…/#z=<hands>`), so opening it replays the same hand with the stakes still
 hidden. That only works where the page owns its own address bar — which is why
 this hosted copy exists. Embedded in a viewer (an iframe, the claude.ai
 artifact viewer), the same button copies the hands as text instead, because a
 link built there would point at the sandbox frame rather than a real page.
 
-Links are capped at ~16k characters — a few hands each.
+What travels is not the hand history but the hand: seats, blinds, cards, the
+action list and the few details the reveal panel shows, written as one line
+per hand and then deflated. A hand history is mostly text the replayer never
+reads — ids, timestamps, the summary block, the same name spelled out twenty
+times — so dropping it takes a one-hand link from about 1,700 characters to
+about 350, and a six-hand one from 9,200 to 1,600.
+
+Those packed records are also a paste format: dropped into **Load hands** they
+load like a hand history does, which is what the embedded copy shares when it
+cannot build a link. `parseHands` recognises them by their `GTS1` first line.
+
+Browsers without `CompressionStream` fall back to `#h=`, the uncompressed
+form. Both keys are still read on the way in, and both still accept hand
+history text, so every link ever shared keeps working.
+
+Links are capped at ~16k characters — comfortably more hands than anyone
+sends at once.
 
 ## Formats
 
