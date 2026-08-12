@@ -29,7 +29,7 @@ const out = `<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="description" content="Poker hand replayer with the stakes hidden — replay a hand, read the play, then call the level.">
-<meta name="color-scheme" content="light dark">
+<meta name="color-scheme" content="light">
 ${head}
 </head>
 <body>
