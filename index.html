@@ -224,7 +224,7 @@ button{font:inherit;color:inherit;background:none;border:none;padding:0;cursor:p
   margin-inline:auto;
   container-type:inline-size;
   border-radius:14px;
-  background:linear-gradient(180deg,#241A1B,#100B0C);
+  background:linear-gradient(180deg,var(--panel),var(--bg-grad));
   border:1px solid var(--line);
   overflow:hidden;
   /* card sizes live here so the board can reserve its height before the flop */
@@ -772,7 +772,7 @@ button{font:inherit;color:inherit;background:none;border:none;padding:0;cursor:p
 .empty{
   display:grid;place-items:center;height:100%;
   font-family:var(--mono);font-size:12px;letter-spacing:.1em;
-  text-transform:uppercase;color:var(--chalk-faint);text-align:center;padding:20px;
+  text-transform:uppercase;color:var(--text-faint);text-align:center;padding:20px;
 }
 
 @media (prefers-reduced-motion:reduce){
