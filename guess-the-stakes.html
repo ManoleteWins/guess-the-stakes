@@ -1,0 +1,2741 @@
+<title>Guess the Stakes</title>
+<style>
+/* ============================================================
+   TOKENS
+   Shell is theme-aware. The felt is always dark in both themes,
+   the way a video player stays dark inside a light page — so
+   everything drawn on felt reads from the fixed on-felt set.
+   ============================================================ */
+:root{
+  /* shell — light */
+  --bg:#EAEEE9;
+  --bg-grad:#DFE5DE;
+  --panel:#F7F9F6;
+  --panel-2:#EDF1EB;
+  --line:#CBD4C9;
+  --line-soft:#DCE3DA;
+  --text:#141A16;
+  --text-dim:#4B5850;
+  --text-faint:#7C8A81;
+  --shadow:0 1px 2px rgba(16,28,20,.10), 0 8px 24px rgba(16,28,20,.08);
+
+  /* accent */
+  --brass:#8A6B12;
+  --brass-bright:#C9A227;
+  --brass-ink:#2A1F05;
+  --brass-glow:rgba(201,162,39,.28);
+  /* The call-to-action keeps one gold in both themes. --brass has to go dark
+     in light mode to stay legible as a border and label colour, which turns a
+     gradient built from it to mud; the button is a filled chip with its own
+     dark ink, so it reads on either ground. */
+  --cta-a:#E8C64A;
+  --cta-b:#C9A227;
+  --cta-edge:#A8851A;
+  --cta-ink:#241B03;
+
+  /* semantic */
+  --good:#1C7A4A;
+  --bad:#A32C2C;
+  --warn:#9A6410;
+
+  /* on-felt: identical in both themes */
+  --felt-a:#1E4F42;
+  --felt-b:#0D2A24;
+  --felt-line:rgba(232,237,233,.10);
+  --rail:#2C2018;
+  --rail-hi:#4A382A;
+  --chalk:#E8EDE9;
+  --chalk-dim:rgba(232,237,233,.62);
+  --chalk-faint:rgba(232,237,233,.34);
+
+  /* card faces */
+  --card-face:#F4F2EC;
+  --card-edge:#C9C4B6;
+  --suit-s:#1A1D1B;
+  --suit-h:#B3202B;
+  --suit-d:#1A5FB4;
+  --suit-c:#1B6B36;
+
+  --mono:ui-monospace,"SFMono-Regular","SF Mono","Cascadia Mono","JetBrains Mono","Roboto Mono",Menlo,Consolas,monospace;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;
+  --r:3px;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0B0F0E;
+    --bg-grad:#0E1413;
+    --panel:#141A19;
+    --panel-2:#1A2220;
+    --line:#28322F;
+    --line-soft:#1F2825;
+    --text:#E8EDE9;
+    --text-dim:#9BAAA2;
+    --text-faint:#6B7A72;
+    --shadow:0 1px 2px rgba(0,0,0,.5), 0 12px 32px rgba(0,0,0,.4);
+    --brass:#C9A227;
+    --brass-bright:#E3BE45;
+    --brass-ink:#17120A;
+    --good:#4FBF84;
+    --bad:#E06A6A;
+    --warn:#D9A441;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0B0F0E;
+  --bg-grad:#0E1413;
+  --panel:#141A19;
+  --panel-2:#1A2220;
+  --line:#28322F;
+  --line-soft:#1F2825;
+  --text:#E8EDE9;
+  --text-dim:#9BAAA2;
+  --text-faint:#6B7A72;
+  --shadow:0 1px 2px rgba(0,0,0,.5), 0 12px 32px rgba(0,0,0,.4);
+  --brass:#C9A227;
+  --brass-bright:#E3BE45;
+  --brass-ink:#17120A;
+  --good:#4FBF84;
+  --bad:#E06A6A;
+  --warn:#D9A441;
+}
+
+/* ============================================================
+   BASE
+   ============================================================ */
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;
+  min-height:100vh;
+  background:var(--bg);
+  background-image:radial-gradient(1200px 700px at 50% -10%, var(--bg-grad), var(--bg) 70%);
+  color:var(--text);
+  font-family:var(--sans);
+  font-size:15px;
+  line-height:1.5;
+  overflow-x:hidden;
+}
+:focus-visible{outline:2px solid var(--brass-bright);outline-offset:2px;border-radius:2px}
+button{font:inherit;color:inherit;background:none;border:none;padding:0;cursor:pointer}
+.mono{font-family:var(--mono)}
+.tnum{font-variant-numeric:tabular-nums}
+
+.eyebrow{
+  font-family:var(--mono);
+  font-size:11px;
+  letter-spacing:.18em;
+  text-transform:uppercase;
+  color:var(--text-faint);
+}
+
+/* ============================================================
+   SHELL
+   ============================================================ */
+.wrap{max-width:1760px;margin:0 auto;padding:14px 16px 32px}
+
+.topbar{
+  display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+  padding-bottom:10px;margin-bottom:12px;
+  border-bottom:1px solid var(--line);
+}
+.brand{display:flex;align-items:baseline;gap:9px;margin-right:auto}
+.brand h1{
+  margin:0;font-family:var(--mono);font-size:17px;font-weight:700;
+  letter-spacing:.16em;text-transform:uppercase;
+}
+.brand .dot{width:6px;height:6px;border-radius:50%;background:var(--brass-bright);flex:none;align-self:center}
+.brand span{font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--text-faint);text-transform:uppercase}
+
+.score{
+  font-family:var(--mono);font-size:12px;letter-spacing:.1em;
+  color:var(--text-dim);text-transform:uppercase;
+  display:flex;align-items:center;gap:7px;
+}
+.score b{color:var(--text);font-size:15px}
+
+.btn{
+  font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;
+  padding:8px 13px;border:1px solid var(--line);border-radius:var(--r);
+  background:var(--panel);color:var(--text-dim);
+  transition:border-color .15s,color .15s,background .15s;
+}
+.btn:hover{border-color:var(--text-faint);color:var(--text)}
+.btn[aria-pressed="true"]{background:var(--panel-2);color:var(--text);border-color:var(--text-faint)}
+
+/* hand tabs */
+.hands{
+  display:flex;gap:6px;overflow-x:auto;padding-bottom:7px;margin-bottom:10px;
+  scrollbar-width:thin;
+}
+.hand-tab{
+  flex:none;display:flex;flex-direction:column;gap:3px;align-items:flex-start;
+  padding:6px 11px;border:1px solid var(--line);border-radius:var(--r);
+  background:var(--panel);min-width:104px;
+  transition:border-color .15s,background .15s;
+}
+.hand-tab:hover{border-color:var(--text-faint)}
+.hand-tab[aria-current="true"]{border-color:var(--brass);background:var(--panel-2)}
+.hand-tab .n{font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:var(--text-faint)}
+.hand-tab[aria-current="true"] .n{color:var(--brass)}
+.hand-tab .d{font-family:var(--mono);font-size:14.5px;color:var(--text);white-space:nowrap}
+.hand-tab .s{font-family:var(--mono);font-size:11px;letter-spacing:.06em}
+.hand-tab .s.pending{color:var(--text-faint)}
+.hand-tab .s.hit{color:var(--good)}
+.hand-tab .s.miss{color:var(--bad)}
+
+/* ============================================================
+   LAYOUT
+   ============================================================ */
+/* Everything on the felt is sized in cqw, so the felt's width sets the scale
+   for the whole table. Give it as much of the page as the rail can spare, and
+   drop to one column early rather than starving it. */
+.main{display:grid;grid-template-columns:minmax(0,1fr) clamp(262px,21%,320px);gap:16px;align-items:start}
+@media (max-width:980px){.main{grid-template-columns:minmax(0,1fr)}}
+
+.stage-col{display:flex;flex-direction:column;gap:12px;min-width:0}
+
+/* ============================================================
+   THE FELT
+   ============================================================ */
+.felt-wrap{
+  /* Width drives every size on the felt, so take the whole column — but cap it
+     against the height actually left over, or the table pushes the guess button
+     and the transport below the fold. The 350px is the fixed chrome above and
+     below (header, tabs, stakes strip, transport); a flat vh fraction can't
+     express that, because the chrome doesn't scale with the viewport. */
+  position:relative;width:min(100%,max(760px,calc((100vh - 350px) * 8 / 5)));aspect-ratio:8/5;
+  margin-inline:auto;
+  container-type:inline-size;
+  border-radius:14px;
+  background:linear-gradient(180deg,#161C1A,#0A0E0D);
+  border:1px solid var(--line);
+  overflow:hidden;
+  /* card sizes live here so the board can reserve its height before the flop */
+  --cw:clamp(26px,6.4cqw,84px);
+  --cw-sm:clamp(19px,3.9cqw,52px);
+  /* Table inset, as a percentage of the felt. The seat ring is derived from
+     these in JS so the plates always land on the rail, whatever the shape.
+     --tx is bounded below by the side seats: the ring sits 2% outside the
+     table, and a plate is ~7% wide either side of its centre, so dropping
+     --tx under about 10 pushes 4/8/10-handed side seats off the felt. */
+  --tx:11;
+  --ty:15;
+}
+/* A narrow felt has to be squarer: the seat stacks (plate + cards + chips)
+   have pixel minimums, so a short felt leaves them nowhere to sit. The table
+   is then inset harder top and bottom to keep it an oval rather than a disc. */
+/* Portrait mobile keeps a rounder table on purpose. The seat stacks hit their
+   pixel minimums here, so flattening the table pulls the top and bottom seats
+   in over the board — and mobile poker clients are rounder in portrait anyway. */
+@media (max-width:640px){.felt-wrap{width:100%;aspect-ratio:1/1;--tx:11;--ty:17}}
+:root[data-theme="light"] .felt-wrap,
+:root:not([data-theme="dark"]) .felt-wrap{box-shadow:var(--shadow)}
+
+/* The table is deliberately smaller than its container: the ring of seat
+   plates has to straddle the rail, and the top and bottom plates need room
+   above and below it. */
+.table{
+  position:absolute;inset:calc(var(--ty)*1%) calc(var(--tx)*1%);
+  border-radius:50%/50%;
+  background:
+    radial-gradient(ellipse at 50% 34%, var(--felt-a), var(--felt-b) 74%);
+  box-shadow:
+    0 0 0 clamp(7px,1.5cqw,13px) var(--rail),
+    0 0 0 calc(clamp(7px,1.5cqw,13px) + 1px) var(--rail-hi),
+    inset 0 0 60px rgba(0,0,0,.45),
+    0 18px 50px rgba(0,0,0,.45);
+}
+.table::after{
+  content:"";position:absolute;inset:5.5%;
+  border-radius:50%/50%;
+  border:1px solid var(--felt-line);
+  pointer-events:none;
+}
+
+/* Centre: pot over board, nothing else in the flow. Every pixel this column
+   grows forces the table rounder, because the top and bottom seats have to
+   clear it — so the street line floats above rather than joining the stack. */
+.centre{
+  position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  display:flex;flex-direction:column;align-items:center;gap:max(7px,1.1cqw);
+  width:76%;
+}
+.pot-readout{display:flex;align-items:baseline;gap:.45em;font-family:var(--mono)}
+.pot-readout .lab{
+  font-size:clamp(9px,1.2cqw,13px);letter-spacing:.2em;text-transform:uppercase;
+  color:var(--chalk-faint);
+}
+.pot-readout .val{
+  font-size:clamp(19px,3.9cqw,52px);font-weight:700;color:var(--chalk);
+  font-variant-numeric:tabular-nums;letter-spacing:-.02em;
+}
+.pot-readout .unit{font-size:clamp(10px,1.5cqw,17px);color:var(--chalk-dim);letter-spacing:.06em}
+
+/* reserve the card height so the pot doesn't jump on the flop */
+.board{display:flex;gap:1cqw;min-height:calc(var(--cw)*1.42)}
+
+/* Above the seat ring, not inside it. Wedged between the top seat's chips and
+   the board it had about 3px of clearance heads-up, where that seat sits
+   directly over the middle; up here nothing can ever reach it. */
+/* Lives in the transport bar, not on the felt: wherever it sat on the table it
+   eventually collided with a seat, because the seat ring reaches every edge. */
+.street-badge{
+  font-family:var(--mono);font-size:11.5px;
+  letter-spacing:.16em;text-transform:uppercase;
+  color:var(--text-dim);
+  padding:4px 11px;border:1px solid var(--line);border-radius:100px;
+  white-space:nowrap;max-width:230px;overflow:hidden;text-overflow:ellipsis;
+  flex:none;
+}
+
+/* ---------- cards ---------- */
+.card{
+  width:var(--cw);height:calc(var(--cw)*1.42);
+  border-radius:calc(var(--cw)*.11);
+  background:linear-gradient(170deg,#FBFAF6,var(--card-face));
+  border:1px solid var(--card-edge);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:calc(var(--cw)*-.02);
+  font-family:var(--mono);font-weight:700;line-height:1;
+  box-shadow:0 2px 5px rgba(0,0,0,.4);
+  flex:none;
+  animation:dealIn .34s cubic-bezier(.2,.8,.3,1) backwards;
+}
+.card .r{font-size:calc(var(--cw)*.52);letter-spacing:-.03em}
+.card .p{font-size:calc(var(--cw)*.4);margin-top:calc(var(--cw)*.02)}
+.card[data-suit="s"]{color:var(--suit-s)}
+.card[data-suit="h"]{color:var(--suit-h)}
+.card[data-suit="d"]{color:var(--suit-d)}
+.card[data-suit="c"]{color:var(--suit-c)}
+.card.mono-deck[data-suit="d"]{color:var(--suit-s)}
+.card.mono-deck[data-suit="c"]{color:var(--suit-s)}
+
+.card.back{
+  background:
+    repeating-linear-gradient(45deg,#3A2A1C 0 3px,#2A1E14 3px 6px);
+  border-color:#4A382A;
+  box-shadow:0 2px 5px rgba(0,0,0,.4), inset 0 0 0 2px rgba(201,162,39,.16);
+}
+.card.dim{opacity:.34;filter:grayscale(.7)}
+/* only the top ~45% of a tucked card shows, so put the glyphs up there */
+.card.sm{
+  --cw:calc(var(--cw-sm)*var(--sc,1));
+  flex-direction:row;align-items:flex-start;justify-content:center;
+  gap:.06em;padding-top:.14em;
+}
+.card.sm .r{font-size:calc(var(--cw)*.62);line-height:1}
+.card.sm .p{font-size:calc(var(--cw)*.55);line-height:1;margin-top:0}
+
+@keyframes dealIn{from{opacity:0;transform:translateY(-8px) scale(.9)}to{opacity:1;transform:none}}
+
+/* ---------- seats ----------
+   The plate alone is the centred element, so it lands on the rail whatever
+   the seat is holding. Cards hang off it absolutely, always toward the middle
+   of the table, which is what keeps the top and bottom seats on the felt. */
+.seat{
+  position:absolute;transform:translate(-50%,-50%);
+  width:calc(clamp(70px,16.5cqw,210px)*var(--sc,1));
+}
+/* Tucked behind the plate, above it, on every seat. Hanging clear of the plate
+   made each seat ~50px taller than it needed to be, and that overhang landed on
+   the NEXT seat around the ring — which is where the overlapping cards came
+   from at 9-handed. Behind the plate the seat's footprint is the plate itself. */
+.seat-cards{
+  position:absolute;left:50%;transform:translateX(-50%);
+  bottom:calc(100% - var(--cw-sm)*.60);
+  display:flex;gap:3px;z-index:0;
+}
+.seat-box{
+  position:relative;z-index:1;
+  width:100%;border-radius:calc(var(--r) + 1px);
+  background:linear-gradient(180deg,rgba(10,16,14,.94),rgba(6,10,9,.96));
+  border:1px solid rgba(232,237,233,.14);
+  padding:calc(.55cqw + 3px) calc(.7cqw + 3px) calc(.45cqw + 2px);
+  text-align:center;
+  box-shadow:0 3px 10px rgba(0,0,0,.4);
+  transition:border-color .2s, box-shadow .2s;
+}
+.seat-name{
+  font-family:var(--mono);font-size:calc(clamp(10px,1.55cqw,20px)*var(--sc,1));
+  color:var(--chalk-dim);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  letter-spacing:.02em;min-width:0;
+}
+.seat-stack{
+  font-family:var(--mono);font-size:calc(clamp(13px,2.15cqw,28px)*var(--sc,1));font-weight:700;
+  color:var(--chalk);font-variant-numeric:tabular-nums;letter-spacing:-.01em;
+}
+.seat-stack .u{font-size:.62em;font-weight:400;color:var(--chalk-faint);margin-left:.16em;letter-spacing:.04em}
+/* Inline in the plate, not floating on its edge. Floating meant it had to
+   swap edges on the upper seats to dodge the cards, and a badge that moves
+   depending on where you sit is just noise to read past. */
+.seat-top{
+  display:flex;align-items:center;justify-content:center;gap:.5em;
+  min-width:0;
+}
+.seat-pos{
+  flex:none;
+  font-family:var(--mono);font-size:calc(clamp(9px,1.2cqw,15px)*var(--sc,1));
+  letter-spacing:.12em;text-transform:uppercase;
+  background:var(--rail);color:var(--chalk-dim);
+  border:1px solid var(--rail-hi);
+  padding:0 6px;border-radius:100px;white-space:nowrap;
+  line-height:1.5;
+}
+.seat.hero .seat-box{border-color:rgba(201,162,39,.5)}
+.seat.hero .seat-pos{background:var(--brass-bright);color:var(--brass-ink);border-color:var(--brass-bright);font-weight:700}
+/* The dealer disc used to float on the felt and collided with cards, chips and
+   plates depending on the seat. The badge already says BTN, so it becomes the
+   button instead of duplicating it. */
+.seat.is-button .seat-pos{
+  background:linear-gradient(160deg,#FBF7E8,#D8CFA8);
+  color:#2A2208;border-color:#9A8C58;font-weight:700;
+}
+.seat.acting .seat-box{
+  border-color:var(--brass-bright);
+  box-shadow:0 0 0 1px var(--brass-bright), 0 0 22px var(--brass-glow);
+}
+/* dimmed, but a folded player's stack still has to be readable */
+.seat.folded{opacity:.58}
+.seat.folded .seat-box{background:linear-gradient(180deg,rgba(10,16,14,.86),rgba(6,10,9,.9))}
+.seat.winner .seat-box{
+  border-color:var(--good);
+  box-shadow:0 0 0 1px var(--good), 0 0 26px rgba(79,191,132,.35);
+}
+
+/* Back inside the plate. It costs height on every seat, but a label that jumps
+   from above the plate to below it depending on the seat is worse than the
+   pixels it saves. Reserved height keeps every plate the same size. */
+.seat-action{
+  font-family:var(--mono);font-size:calc(clamp(9px,1.2cqw,15px)*var(--sc,1));
+  letter-spacing:.14em;text-transform:uppercase;
+  color:var(--chalk-faint);
+  height:1.3em;line-height:1.3;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+/* Cards and chips are the only things that still track the table, and that is
+   physical, not arbitrary: at a real table they sit in front of you. */
+.seat-action.act-raise,.seat-action.act-bet{color:var(--brass-bright)}
+.seat-action.act-allin{color:var(--bad);font-weight:700}
+.seat-action.act-wins{color:var(--good);font-weight:700}
+
+/* dealer button */
+.dealer{
+  position:absolute;transform:translate(-50%,-50%);
+  width:clamp(20px,3cqw,40px);aspect-ratio:1;border-radius:50%;
+  background:linear-gradient(160deg,#FBF7E8,#D8CFA8);
+  border:1px solid #9A8C58;
+  color:#2A2208;font-family:var(--mono);font-weight:700;
+  font-size:clamp(10px,1.5cqw,17px);
+  display:grid;place-items:center;
+  box-shadow:0 2px 6px rgba(0,0,0,.5);
+  transition:left .3s ease,top .3s ease;
+  z-index:3;
+}
+
+/* Bet pucks hang off their own seat, just past the hole cards, rather than at
+   a fixed fraction of the table radius — the card stack has pixel minimums, so
+   on a small felt a proportional offset lands on top of the cards. */
+.puck{
+  position:absolute;transform:translate(-50%,-50%);
+  display:flex;align-items:center;gap:.35em;
+  font-family:var(--mono);font-size:calc(clamp(11px,1.7cqw,22px)*var(--sc,1));font-weight:700;
+  color:var(--chalk);font-variant-numeric:tabular-nums;
+  background:rgba(6,10,9,.82);
+  border:1px solid rgba(232,237,233,.16);
+  border-radius:100px;padding:.12em .6em .12em .2em;
+  white-space:nowrap;
+  box-shadow:0 2px 8px rgba(0,0,0,.45);
+  animation:puckIn .2s ease backwards;
+  z-index:2;
+}
+.puck i{
+  width:1.05em;aspect-ratio:1;border-radius:50%;flex:none;
+  background:var(--brass-bright);
+  border:.14em dashed rgba(42,31,5,.55);
+}
+.puck.blind i{background:var(--chalk-faint);border-color:rgba(6,10,9,.4)}
+@keyframes puckIn{from{opacity:0;transform:translate(-50%,-50%) scale(.7)}to{opacity:1}}
+
+/* winner flash */
+.felt-wrap.won .table{box-shadow:
+  0 0 0 clamp(7px,1.5cqw,13px) var(--rail),
+  0 0 0 calc(clamp(7px,1.5cqw,13px) + 1px) var(--rail-hi),
+  inset 0 0 90px rgba(79,191,132,.14),
+  0 18px 50px rgba(0,0,0,.45)}
+
+/* ============================================================
+   STAKES STRIP — the centrepiece
+   ============================================================ */
+.stakes-strip{
+  display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+  padding:10px 14px;
+  border:1px solid var(--line);border-radius:var(--r);
+  background:var(--panel);
+}
+.stakes-strip.revealed{border-color:var(--brass);background:var(--panel-2)}
+.stakes-face{display:flex;flex-direction:column;gap:5px;margin-right:auto;min-width:0}
+.stakes-face .eyebrow{color:var(--text-faint)}
+.redacted{
+  display:inline-block;height:22px;width:132px;border-radius:2px;
+  background:repeating-linear-gradient(115deg,var(--text-faint) 0 6px,transparent 6px 11px);
+  opacity:.4;
+}
+.stakes-val{
+  font-family:var(--mono);font-size:23px;font-weight:700;
+  font-variant-numeric:tabular-nums;letter-spacing:-.01em;
+  display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;
+}
+.stakes-val .tag{
+  font-size:10px;font-weight:700;letter-spacing:.14em;
+  background:var(--brass-bright);color:var(--brass-ink);
+  padding:2px 7px;border-radius:2px;
+}
+.stakes-val .sub{font-size:11px;font-weight:400;letter-spacing:.06em;color:var(--text-dim)}
+
+.guess-btn{
+  font-family:var(--mono);font-size:13.5px;font-weight:700;
+  letter-spacing:.16em;text-transform:uppercase;
+  padding:14px 24px;border-radius:var(--r);
+  background:linear-gradient(180deg,var(--cta-a),var(--cta-b));
+  color:var(--cta-ink);
+  border:1px solid var(--cta-edge);
+  box-shadow:0 2px 0 rgba(0,0,0,.18), 0 0 22px var(--brass-glow);
+  transition:transform .12s, box-shadow .2s, filter .15s;
+  flex:none;
+}
+.guess-btn:hover{filter:brightness(1.08);box-shadow:0 2px 0 rgba(0,0,0,.18), 0 0 32px var(--brass-glow)}
+.guess-btn:active{transform:translateY(1px);box-shadow:0 1px 0 rgba(0,0,0,.18)}
+
+.verdict{
+  font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+  padding:6px 11px;border-radius:var(--r);border:1px solid;flex:none;
+}
+.verdict.hit{color:var(--good);border-color:var(--good);background:color-mix(in srgb,var(--good) 10%,transparent)}
+.verdict.close{color:var(--warn);border-color:var(--warn);background:color-mix(in srgb,var(--warn) 10%,transparent)}
+.verdict.miss{color:var(--bad);border-color:var(--bad);background:color-mix(in srgb,var(--bad) 10%,transparent)}
+
+/* guess ladder */
+.ladder{
+  display:none;flex-direction:column;gap:10px;width:100%;
+  padding-top:12px;margin-top:2px;border-top:1px solid var(--line-soft);
+}
+.ladder.open{display:flex}
+.ladder-rungs{display:flex;flex-wrap:wrap;gap:6px}
+.rung{
+  font-family:var(--mono);font-size:13.5px;font-weight:700;letter-spacing:.06em;
+  padding:9px 13px;border:1px solid var(--line);border-radius:var(--r);
+  background:var(--panel-2);color:var(--text-dim);
+  transition:border-color .12s,color .12s,transform .12s;
+}
+.rung:hover{border-color:var(--brass);color:var(--text);transform:translateY(-1px)}
+.rung .m{display:block;font-size:11px;font-weight:400;letter-spacing:.04em;color:var(--text-faint);margin-top:2px}
+.rung:hover .m{color:var(--text-dim)}
+.ladder-foot{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.linky{
+  font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--text-faint);text-decoration:underline;text-underline-offset:3px;
+}
+.linky:hover{color:var(--text)}
+
+/* ============================================================
+   TRANSPORT
+   ============================================================ */
+.transport{
+  display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+  padding:10px 12px;border:1px solid var(--line);border-radius:var(--r);
+  background:var(--panel);
+}
+.tgroup{display:flex;gap:4px;align-items:center}
+.tbtn{
+  width:38px;height:34px;border-radius:var(--r);
+  border:1px solid var(--line);background:var(--panel-2);color:var(--text-dim);
+  display:grid;place-items:center;
+  transition:border-color .12s,color .12s;
+}
+.tbtn:hover:not(:disabled){border-color:var(--text-faint);color:var(--text)}
+.tbtn:disabled{opacity:.32;cursor:default}
+.tbtn.play{width:48px;background:var(--text);color:var(--panel);border-color:var(--text)}
+.tbtn.play:hover:not(:disabled){filter:brightness(1.15);border-color:var(--text)}
+.tbtn svg{width:15px;height:15px;fill:currentColor}
+
+.scrub{display:flex;gap:2px;flex:1;min-width:130px;align-items:stretch;height:30px}
+.tick{
+  flex:1;min-width:2px;border-radius:1px;
+  background:var(--line);border:none;padding:0;
+  transition:background .15s;
+}
+.tick:hover{background:var(--text-faint)}
+.tick.done{background:var(--text-faint)}
+.tick.now{background:var(--brass-bright);box-shadow:0 0 8px var(--brass-glow)}
+.tick.street{background:var(--text-dim)}
+
+.speed{display:flex;gap:3px}
+.speed button{
+  font-family:var(--mono);font-size:11.5px;letter-spacing:.06em;
+  padding:6px 9px;border:1px solid var(--line);border-radius:var(--r);
+  color:var(--text-faint);
+}
+.speed button[aria-pressed="true"]{color:var(--text);border-color:var(--text-faint);background:var(--panel-2)}
+
+.counter{font-family:var(--mono);font-size:12.5px;color:var(--text-faint);font-variant-numeric:tabular-nums;letter-spacing:.06em}
+
+/* ============================================================
+   RAIL
+   ============================================================ */
+.rail-col{display:flex;flex-direction:column;gap:12px;min-width:0}
+.panel{
+  border:1px solid var(--line);border-radius:var(--r);background:var(--panel);
+  overflow:hidden;
+}
+.panel-head{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  padding:9px 12px;border-bottom:1px solid var(--line-soft);
+  background:var(--panel-2);
+}
+.panel-head .eyebrow{color:var(--text-dim)}
+
+.meta{padding:4px 12px 10px}
+.meta-row{
+  display:flex;justify-content:space-between;align-items:baseline;gap:10px;
+  padding:7px 0;border-bottom:1px solid var(--line-soft);
+  font-family:var(--mono);font-size:13.5px;
+}
+.meta-row:last-child{border-bottom:none}
+.meta-row .k{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-faint)}
+.meta-row .v{color:var(--text);font-variant-numeric:tabular-nums;text-align:right}
+.meta-row .v .u{font-size:.8em;color:var(--text-faint);margin-left:.2em}
+
+.log{max-height:min(50vh,440px);overflow-y:auto;scrollbar-width:thin}
+@media (max-width:900px){.log{max-height:320px}}
+.log-street{
+  position:sticky;top:0;z-index:1;
+  display:flex;align-items:center;gap:8px;
+  padding:7px 12px;
+  background:var(--panel-2);
+  border-top:1px solid var(--line-soft);border-bottom:1px solid var(--line-soft);
+  font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--text-dim);
+}
+.log-street .cards{display:flex;gap:3px;margin-left:auto}
+.log-street .mini{
+  font-size:11.5px;font-weight:700;letter-spacing:0;
+  padding:1px 3px;border-radius:2px;
+  background:var(--card-face);border:1px solid var(--card-edge);
+}
+.mini[data-suit="s"]{color:var(--suit-s)}
+.mini[data-suit="h"]{color:var(--suit-h)}
+.mini[data-suit="d"]{color:var(--suit-d)}
+.mini[data-suit="c"]{color:var(--suit-c)}
+.mono-deck .mini[data-suit="d"],.mono-deck .mini[data-suit="c"]{color:var(--suit-s)}
+
+.log-row{
+  display:flex;align-items:baseline;gap:8px;width:100%;
+  padding:6px 12px;font-family:var(--mono);font-size:13.5px;
+  border-left:2px solid transparent;
+  text-align:left;
+  transition:background .1s;
+}
+.log-row:hover{background:var(--panel-2)}
+.log-row[aria-current="true"]{
+  background:var(--panel-2);border-left-color:var(--brass-bright);
+}
+.log-row .pos{
+  width:50px;flex:none;font-size:11.5px;letter-spacing:.1em;
+  color:var(--text-faint);text-transform:uppercase;
+}
+.log-row.is-hero .pos{color:var(--brass)}
+.log-row .act{color:var(--text-dim);flex:1;min-width:0}
+.log-row .amt{color:var(--text);font-variant-numeric:tabular-nums;font-weight:700}
+.log-row .amt .u{font-size:.78em;font-weight:400;color:var(--text-faint);margin-left:.15em}
+.log-row.aggressive .act{color:var(--text)}
+.log-row.result .act{color:var(--good)}
+.log-row.fold{opacity:.62}
+
+/* ============================================================
+   LOAD PANEL
+   ============================================================ */
+.loader{display:none;flex-direction:column;gap:10px;padding:12px}
+.loader.open{display:flex}
+.loader textarea{
+  width:100%;min-height:190px;resize:vertical;
+  font-family:var(--mono);font-size:12px;line-height:1.55;
+  padding:11px;border-radius:var(--r);
+  border:1px solid var(--line);background:var(--panel-2);color:var(--text);
+}
+.loader textarea::placeholder{color:var(--text-faint)}
+.loader-foot{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.hint{font-size:12px;color:var(--text-faint);line-height:1.55}
+.hint code{font-family:var(--mono);font-size:11px;background:var(--panel-2);padding:1px 5px;border-radius:2px;border:1px solid var(--line-soft)}
+.status{font-family:var(--mono);font-size:11px;letter-spacing:.06em}
+.status.err{color:var(--bad)}
+.status.ok{color:var(--good)}
+
+.toast{
+  position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(12px);
+  background:var(--text);color:var(--bg);
+  font-family:var(--mono);font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;
+  padding:10px 16px;border-radius:var(--r);
+  opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;
+  z-index:50;box-shadow:var(--shadow);
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+.foot{
+  margin-top:26px;padding-top:14px;border-top:1px solid var(--line);
+  display:flex;gap:14px;flex-wrap:wrap;align-items:center;
+  font-family:var(--mono);font-size:11.5px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--text-faint);
+}
+.foot kbd{
+  font-family:var(--mono);font-size:10px;letter-spacing:0;text-transform:none;
+  border:1px solid var(--line);border-radius:2px;padding:1px 5px;
+  background:var(--panel-2);color:var(--text-dim);
+}
+
+.empty{
+  display:grid;place-items:center;height:100%;
+  font-family:var(--mono);font-size:12px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--chalk-faint);text-align:center;padding:20px;
+}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}
+}
+</style>
+
+<div class="wrap">
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="dot"></span>
+      <h1>Guess the Stakes</h1>
+      <span>Hand Replayer</span>
+    </div>
+    <div class="score" id="score" hidden><span>Called</span> <b id="scoreVal">0/0</b></div>
+    <button class="btn" id="deckBtn" aria-pressed="true">4-colour</button>
+    <button class="btn" id="anonBtn" aria-pressed="true">Anonymise</button>
+    <button class="btn" id="shareBtn">Share</button>
+    <button class="btn" id="loadBtn" aria-pressed="false">Load hands</button>
+  </header>
+
+  <div class="panel" id="loaderPanel" hidden>
+    <div class="panel-head"><span class="eyebrow">Paste hand histories</span>
+      <button class="linky" id="loaderClose">Close</button>
+    </div>
+    <div class="loader open">
+      <textarea id="hhInput" spellcheck="false" placeholder="Paste hand histories here — as many as you like, from as many sites as you like. Each hand becomes its own tab.&#10;&#10;Mixed pastes are fine: drop PokerStars, GGPoker and Winamax hands in together."></textarea>
+      <div class="loader-foot">
+        <button class="btn" id="parseBtn" style="border-color:var(--brass);color:var(--text)">Load</button>
+        <button class="btn" id="demoBtn">Restore samples</button>
+        <span class="status" id="loadStatus"></span>
+      </div>
+      <p class="hint">Reads <b>PokerStars</b>, <b>GGPoker</b>, <b>partypoker</b>, <b>888poker</b>, <b>Winamax</b>, <b>WPN&nbsp;/&nbsp;ACR</b>, <b>iPoker</b> (XML) and <b>Ignition&nbsp;/&nbsp;Bovada</b>, plus tracker exports from PokerTracker and Holdem Manager. Anything else falls through to a loose reader that copes with most club-app and home-brew exports — if it has seats, blinds and actions, it will usually replay.</p>
+      <p class="hint">Everything runs in this page — hands are never uploaded anywhere, and there is no server to store them on. <b>Share</b> therefore sends the hands themselves, not a pointer to them: opened as its own page, it copies a link with the hands packed inside, and whoever opens that link gets the same hidden-stakes puzzle. Embedded in a viewer, where this page doesn't own its address bar, it copies the hands as text for the other person to paste into this box instead.</p>
+    </div>
+  </div>
+
+  <nav class="hands" id="handTabs" aria-label="Loaded hands"></nav>
+
+  <div class="main">
+    <div class="stage-col">
+      <div class="felt-wrap" id="feltWrap">
+        <div class="table" id="table"></div>
+        <div class="centre">
+          <div class="pot-readout">
+            <span class="lab">Pot</span>
+            <span class="val" id="potVal" data-num="pot">0</span>
+            <span class="unit" id="potUnit">bb</span>
+          </div>
+          <div class="board" id="board"></div>
+        </div>
+        <div id="seatLayer"></div>
+      </div>
+
+      <div class="stakes-strip" id="stakesStrip">
+        <div class="stakes-face">
+          <span class="eyebrow" id="stakesLabel">Stakes</span>
+          <div class="stakes-val" id="stakesVal"><span class="redacted"></span></div>
+        </div>
+        <div id="verdictSlot"></div>
+        <button class="guess-btn" id="guessBtn">Guess the stakes</button>
+        <div class="ladder" id="ladder">
+          <div class="ladder-rungs" id="rungs"></div>
+          <div class="ladder-foot">
+            <button class="linky" id="revealBtn">Skip — just show me</button>
+            <span class="hint" id="ladderHint"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="transport">
+        <div class="tgroup">
+          <button class="tbtn" id="btnStart" title="First action (Home)" aria-label="First action">
+            <svg viewBox="0 0 24 24"><path d="M6 5h2.5v14H6zM20 5v14L9.5 12z"/></svg></button>
+          <button class="tbtn" id="btnPrev" title="Previous (←)" aria-label="Previous action">
+            <svg viewBox="0 0 24 24"><path d="M18 5v14L7 12z"/></svg></button>
+          <button class="tbtn play" id="btnPlay" title="Play / pause (Space)" aria-label="Play">
+            <svg viewBox="0 0 24 24" id="playIcon"><path d="M7 4l13 8-13 8z"/></svg></button>
+          <button class="tbtn" id="btnNext" title="Next (→)" aria-label="Next action">
+            <svg viewBox="0 0 24 24"><path d="M6 5v14l11-7z"/></svg></button>
+          <button class="tbtn" id="btnEnd" title="Last action (End)" aria-label="Last action">
+            <svg viewBox="0 0 24 24"><path d="M4 5l10.5 7L4 19zM15.5 5H18v14h-2.5z"/></svg></button>
+        </div>
+        <div class="scrub" id="scrub"></div>
+        <span class="street-badge" id="streetBadge">Preflop</span>
+        <span class="counter" id="counter">0 / 0</span>
+        <div class="speed" id="speed">
+          <button data-mult="0.5" aria-pressed="false">0.5&times;</button>
+          <button data-mult="1" aria-pressed="true">1&times;</button>
+          <button data-mult="2" aria-pressed="false">2&times;</button>
+        </div>
+      </div>
+    </div>
+
+    <aside class="rail-col">
+      <div class="panel">
+        <div class="panel-head"><span class="eyebrow">This hand</span><span class="eyebrow" id="metaSite"></span></div>
+        <div class="meta" id="meta"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><span class="eyebrow">Action</span><span class="eyebrow" id="logUnit">in big blinds</span></div>
+        <div class="log" id="log"></div>
+      </div>
+    </aside>
+  </div>
+
+  <footer class="foot">
+    <span><kbd>&larr;</kbd> <kbd>&rarr;</kbd> step</span>
+    <span><kbd>Space</kbd> play</span>
+    <span><kbd>G</kbd> guess</span>
+    <span><kbd>1</kbd>&ndash;<kbd>9</kbd> hand</span>
+    <span style="margin-left:auto">Amounts in big blinds until you call it</span>
+  </footer>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* =========================================================================
+   Hand-history engine: detect -> parse -> normalise -> frames
+   Pure logic, no DOM. Unit-tested standalone under node, then inlined.
+
+   Format families, all normalised into one canonical hand object:
+     stars    PokerStars, GGPoker, most converter output (PokerBros, ClubGG)
+     bovada   Ignition / Bovada / Bodog  ("Name : Verb", no stakes in header)
+     winamax  Winamax                    (no colon, currency suffixed)
+     party    partypoker + 888poker      ("** Dealing Flop **", raise = increment)
+     wpn      Winning Poker Network/ACR  ("Player X raises (n)")
+     ipoker   iPoker network             (XML, numeric action codes)
+
+   Raise convention differs by site and is the one thing that silently
+   corrupts every pot if you get it wrong:
+     stars/bovada/winamax  "raises A to B"  -> B is the street total
+     wpn                   "raises (B)"     -> B is the street total
+     ipoker                sum="B"          -> B is the street total
+     party/888             "raises [A]"     -> A is the chips ADDED
+   ========================================================================= */
+
+/* Number parsing that survives both conventions: "1,234.56" (US) and
+   "1.234,56" / "0,05" (European). Guessing wrong here silently multiplies
+   every stack by 100, so decide from the separator layout, not a default. */
+function num(s) {
+  if (s == null) return 0;
+  let t = String(s).replace(/[^\d.,\-]/g, '');
+  if (!t) return 0;
+  const lastComma = t.lastIndexOf(','), lastDot = t.lastIndexOf('.');
+  if (lastComma > -1 && lastDot > -1) {
+    if (lastComma > lastDot) t = t.replace(/\./g, '').replace(/,/g, '.'); // 1.234,56
+    else t = t.replace(/,/g, '');                                          // 1,234.56
+  } else if (lastComma > -1) {
+    const after = t.length - lastComma - 1;
+    const commas = (t.match(/,/g) || []).length;
+    if (commas === 1 && after > 0 && after <= 2) t = t.replace(',', '.');   // 0,05
+    else t = t.replace(/,/g, '');                                          // 1,234
+  }
+  const v = parseFloat(t);
+  return isNaN(v) ? 0 : v;
+}
+function curOf(s) { const m = /[€$£¥]/.exec(String(s || '')); return m ? m[0] : ''; }
+
+/* Accepts "As", "10h", "Th", "aS" — sites disagree on the ten and on case. */
+function parseCard(tok) {
+  let t = String(tok).trim();
+  if (!t) return null;
+  t = t.replace(/^10/, 'T');
+  const m = /^([2-9TJQKA])\s*([shdc♠♥♦♣])$/i.exec(t);
+  if (!m) return null;
+  const suit = { '♠': 's', '♥': 'h', '♦': 'd', '♣': 'c' }[m[2]] || m[2].toLowerCase();
+  return { r: m[1].toUpperCase(), s: suit };
+}
+function parseCards(str) {
+  if (!str) return [];
+  return String(str).trim().split(/[\s,]+/).map(parseCard).filter(Boolean);
+}
+
+const POSITIONS = {
+  2: ['BTN', 'BB'],
+  3: ['BTN', 'SB', 'BB'],
+  4: ['BTN', 'SB', 'BB', 'CO'],
+  5: ['BTN', 'SB', 'BB', 'UTG', 'CO'],
+  6: ['BTN', 'SB', 'BB', 'UTG', 'HJ', 'CO'],
+  7: ['BTN', 'SB', 'BB', 'UTG', 'LJ', 'HJ', 'CO'],
+  8: ['BTN', 'SB', 'BB', 'UTG', 'UTG+1', 'LJ', 'HJ', 'CO'],
+  9: ['BTN', 'SB', 'BB', 'UTG', 'UTG+1', 'UTG+2', 'LJ', 'HJ', 'CO'],
+  10: ['BTN', 'SB', 'BB', 'UTG', 'UTG+1', 'UTG+2', 'UTG+3', 'LJ', 'HJ', 'CO']
+};
+function assignPositions(players, buttonSeat) {
+  const seats = players.map(p => p.seat).sort((a, b) => a - b);
+  const n = seats.length;
+  if (!n) return;
+  let bi = seats.indexOf(buttonSeat);
+  if (bi < 0) bi = 0;
+  const names = POSITIONS[n] || POSITIONS[10];
+  for (let i = 0; i < n; i++) {
+    const seat = seats[(bi + i) % n];
+    players.find(x => x.seat === seat).pos = names[i] || ('+' + i);
+  }
+}
+
+/* -------------------------------------------------------------------------
+   Format detection + splitting a paste into individual hands
+   ------------------------------------------------------------------------- */
+
+const START_PATTERNS = [
+  { fmt: 'winamax', re: /^Winamax Poker\s*-/i },
+  { fmt: 'party', re: /^#Game No\s*:/i },
+  { fmt: 'party', re: /^\*{3,}\s*.*Hand History for Game/i },
+  { fmt: 'bovada', re: /^(?:Ignition|Bovada|Bodog)\s+Hand\s+#/i },
+  { fmt: 'wpn', re: /^Game started at:/i },
+  { fmt: 'wpn', re: /^Game ID:\s*\d/i },
+  { fmt: 'stars', re: /(?:Hand|Game)\s*#\s*[A-Za-z0-9._-]+\s*[:\-]/i },
+  /* last resort: any line naming a room next to a hand number */
+  { fmt: null, re: /^[A-Za-z0-9 .'&+-]{0,40}(?:Hand|Game)\s*(?:History)?\s*#/i }
+];
+
+/* {hit:boolean, fmt:string|null} — fmt null means "a hand starts here but the
+   room is unknown", which is still useful: every parser gets a try. */
+function startFormat(line) {
+  for (const p of START_PATTERNS) if (p.re.test(line)) return { hit: true, fmt: p.fmt };
+  return { hit: false, fmt: null };
+}
+
+function looksLikeIPoker(text) {
+  return /<session\b/i.test(text) || /<game\s+gamecode=/i.test(text);
+}
+
+/* Returns [{fmt, block}]; fmt may be null, meaning "try everything". */
+function splitHands(text) {
+  const src = String(text).replace(/\r\n?/g, '\n');
+  if (looksLikeIPoker(src)) return splitIPoker(src);
+
+  const lines = src.split('\n');
+  const starts = [];
+  for (let i = 0; i < lines.length; i++) {
+    const { hit, fmt } = startFormat(lines[i]);
+    if (!hit) continue;
+    // 888 writes "#Game No : n" immediately above the ***** header; one hand, not two
+    if (starts.length && i - starts[starts.length - 1].line <= 1) {
+      if (fmt && !starts[starts.length - 1].fmt) starts[starts.length - 1].fmt = fmt;
+      continue;
+    }
+    starts.push({ line: i, fmt });
+  }
+
+  /* No recognisable header anywhere. If it still smells like a hand, hand the
+     whole paste over as one block rather than refusing it. */
+  if (!starts.length) {
+    return /^\s*Seat\s*#?\s*\d+\s*[:.]/im.test(src) || /\*\*\*\s*(?:FLOP|HOLE CARDS)/i.test(src)
+      ? [{ fmt: null, block: src.trim() }]
+      : [];
+  }
+
+  const out = [];
+  /* keep any preamble before the first header attached to the first hand */
+  for (let i = 0; i < starts.length; i++) {
+    const from = i === 0 ? 0 : starts[i].line;
+    const to = i + 1 < starts.length ? starts[i + 1].line : lines.length;
+    const block = lines.slice(from, to).join('\n').trim();
+    if (block) out.push({ fmt: starts[i].fmt, block });
+  }
+  return out;
+}
+
+function splitIPoker(text) {
+  const out = [];
+  /* "<game " with the delimiter — "<game" alone also matches "<gametype>",
+     which would truncate the session header we are trying to keep. */
+  const headM = /<general>[\s\S]*?<\/general>/i.exec(text.split(/<game\s/i)[0] || '');
+  const head = headM ? headM[0] : '';
+  const re = /<game\s[\s\S]*?<\/game>/gi;
+  let m;
+  while ((m = re.exec(text))) {
+    out.push({ fmt: 'ipoker', block: head + '\n' + m[0] });
+  }
+  return out;
+}
+
+/* -------------------------------------------------------------------------
+   Shared: match "PlayerName rest-of-line" when the site uses no colon.
+   Player names contain spaces on several sites, so match against the known
+   seat list, longest name first.
+   ------------------------------------------------------------------------- */
+function playerLine(line, names) {
+  for (const n of names) {
+    if (line === n) return { name: n, rest: '' };
+    if (line.length > n.length && line.startsWith(n) && /[\s:]/.test(line[n.length])) {
+      return { name: n, rest: line.slice(n.length).replace(/^[\s:]+/, '') };
+    }
+  }
+  return null;
+}
+
+function blankHand(fmt, block) {
+  return {
+    id: '', site: '', fmt, raw: block,
+    isTournament: false, buyin: '', level: '',
+    currency: '', sb: 0, bb: 0, ante: 0, headerSB: 0, headerBB: 0,
+    gameType: "Hold'em", limit: 'No Limit',
+    tableName: '', maxPlayers: 0, buttonSeat: 0,
+    players: [], heroName: '', holeCards: {}, board: [], actions: [],
+    totalPot: 0, rake: 0, winners: [], parseWarnings: []
+  };
+}
+
+/* =========================================================================
+   1. PokerStars family  (+ GGPoker, and Bovada/Ignition as a variant)
+   ========================================================================= */
+function parseStars(block, fmt) {
+  const lines = block.split('\n').map(l => l.replace(/\s+$/, '')).filter(l => l.trim() !== '');
+  if (!lines.length) return null;
+  const hand = blankHand(fmt, block);
+  const head = lines[0];
+  const bovada = fmt === 'bovada';
+
+  if (bovada) hand.site = /bodog/i.test(head) ? 'Bodog' : /bovada/i.test(head) ? 'Bovada' : 'Ignition';
+  else if (/pokerstars/i.test(head)) hand.site = 'PokerStars';
+  else if (/^(?:GG|Poker Hand #(?:RC|TM|SD|HD))/i.test(head) || /\bGGPoker\b/i.test(head)) hand.site = 'GGPoker';
+  else if (/winning|americas cardroom|\bACR\b/i.test(head)) hand.site = 'ACR';
+  else hand.site = 'Unknown';
+
+  const idM = /(?:Hand|Game)\s*#\s*([A-Za-z0-9._-]+)/i.exec(head);
+  hand.id = idM ? idM[1] : '';
+  const gM = /(Hold'?em|Omaha Hi\/Lo|5 Card Omaha|6\+ Hold'?em|Short Deck|Omaha|Razz|Stud Hi\/Lo|Stud|Badugi|Draw)/i.exec(head);
+  if (gM) hand.gameType = /holdem/i.test(gM[1]) ? "Hold'em" : gM[1];
+  const lM = /(No Limit|Pot Limit|Fixed Limit|Limit)/i.exec(head);
+  if (lM) hand.limit = lM[1];
+
+  hand.isTournament = /Tournament\s*#/i.test(head);
+  if (hand.isTournament) {
+    const bM = /Tournament\s*#[A-Za-z0-9._-]+\s*,\s*(.+?)\s+(?:USD\s+|EUR\s+)?(?:Hold'?em|Omaha|Razz|Stud|Draw|Badugi|No Limit|Pot Limit|Limit)/i.exec(head);
+    if (bM) hand.buyin = bM[1].trim();
+    else if (/freeroll/i.test(head)) hand.buyin = 'Freeroll';
+    hand.currency = curOf(hand.buyin);
+    const lvM = /Level\s+([IVXLC\d]+)\s*\(\s*([\d.,]+)\s*\/\s*([\d.,]+)(?:\s*\/\s*([\d.,]+))?\s*\)/i.exec(head);
+    if (lvM) { hand.level = lvM[1]; hand.headerSB = num(lvM[2]); hand.headerBB = num(lvM[3]); if (lvM[4]) hand.ante = num(lvM[4]); }
+  }
+  if (!hand.headerBB) {
+    const all = [...head.matchAll(/\(\s*([€$£¥]?)\s*([\d.,]+)\s*\/\s*([€$£¥]?)\s*([\d.,]+)\s*(?:\/\s*([€$£¥]?)\s*([\d.,]+)\s*)?([A-Z]{3})?\s*\)/g)];
+    const m = all[all.length - 1];
+    if (m) {
+      hand.currency = m[1] || m[3] || hand.currency;
+      hand.headerSB = num(m[2]); hand.headerBB = num(m[4]);
+      if (m[6]) hand.ante = num(m[6]);
+    }
+  }
+
+  const tM = /^Table\s+'([^']*)'\s*(?:\(([^)]*)\)\s*)?(?:(\d+)\s*-\s*max)?/i.exec(lines[1] || '');
+  if (tM) { hand.tableName = tM[1] || ''; hand.maxPlayers = tM[3] ? parseInt(tM[3], 10) : 0; }
+  const btnM = /Seat\s*#\s*(\d+)\s*is the button/i.exec(block);
+  if (btnM) hand.buttonSeat = parseInt(btnM[1], 10);
+
+  for (const line of lines) {
+    if (/^\*\*\*/.test(line)) break;
+    const sM = /^Seat\s+(\d+):\s+(.+?)\s+\(\s*([€$£¥]?[\d.,]+)\s+in chips/i.exec(line);
+    if (sM) hand.players.push({
+      seat: parseInt(sM[1], 10), name: sM[2].trim(), startStack: num(sM[3]),
+      sittingOut: /is sitting out/i.test(line)
+    });
+  }
+  if (!hand.players.length) { hand.parseWarnings.push('No seats found'); return hand; }
+
+  if (bovada) {
+    const hero = hand.players.find(p => /\[ME\]/i.test(p.name));
+    if (hero) hand.heroName = hero.name;
+    const dM = /Set dealer\s*\[\s*(\d+)\s*\]/i.exec(block);
+    if (dM) hand.buttonSeat = parseInt(dM[1], 10);
+  }
+
+  const nameSet = new Set(hand.players.map(p => p.name));
+  const known = s => nameSet.has(s);
+  let street = 'preflop', inSummary = false;
+  const push = a => hand.actions.push(a);
+
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i];
+    let m;
+
+    if ((m = /^\*\*\*\s*(?:(FIRST|SECOND|THIRD)\s+)?(HOLE CARDS|FLOP|TURN|RIVER|SHOW ?DOWN|SUMMARY|PRE-?FLOP)\s*(\d+)?\s*\*\*\*(.*)$/i.exec(line))) {
+      const word = (m[1] || '').toUpperCase();
+      const which = m[2].toUpperCase().replace(/\s+/g, ' ');
+      const rest = m[4] || '';
+      /* Run it twice: the extra run-outs are their own board, so tag them and
+         let buildFrames deal them separately rather than dropping them. Rooms
+         either name the run ("SECOND TURN") or number it ("TURN 2"); zero means
+         it said nothing and tagRuns works it out from the order instead. */
+      const run = word === 'THIRD' ? 3 : word === 'SECOND' ? 2 : word === 'FIRST' ? 1 : (+m[3] || 0);
+      if (which === 'HOLE CARDS' || which === 'PREFLOP' || which === 'PRE-FLOP') street = 'preflop';
+      else if (which === 'FLOP') {
+        street = 'flop';
+        push({ type: 'street', street, run, cards: parseCards((/\[([^\]]+)\]\s*$/.exec(rest) || [])[1]) });
+      } else if (which === 'TURN' || which === 'RIVER') {
+        street = which.toLowerCase();
+        const g = [...rest.matchAll(/\[([^\]]+)\]/g)];
+        push({ type: 'street', street, run, cards: parseCards(g.length ? g[g.length - 1][1] : '') });
+      } else if (which === 'SHOW DOWN' || which === 'SHOWDOWN') {
+        street = 'showdown'; push({ type: 'street', street, cards: [] });
+      } else if (which === 'SUMMARY') inSummary = true;
+      continue;
+    }
+
+    if (inSummary) {
+      if ((m = /^Total\s+pot[\s(]+([€$£¥]?[\d.,]+)\)?(?:.*?\|\s*Rake\s+([€$£¥]?[\d.,]+))?/i.exec(line))) {
+        hand.totalPot = num(m[1]); if (m[2]) hand.rake = num(m[2]);
+      } else if ((m = /^Board:?\s+\[([^\]]+)\]/i.exec(line))) {
+        const b = parseCards(m[1]); if (b.length > hand.board.length) hand.board = b;
+      } else if ((m = /^Seat[+\s]*\d+:\s+(.+?)\s+(?:\(.*?\)\s+)?(?:showed|shows)\s+\[([^\]]+)\]/i.exec(line))) {
+        if (!hand.holeCards[m[1].trim()]) hand.holeCards[m[1].trim()] = parseCards(m[2]);
+      }
+      continue;
+    }
+
+    if ((m = /^Dealt to\s+(.+?)\s+\[([^\]]+)\]/i.exec(line))) {
+      const nm = m[1].trim();
+      hand.holeCards[nm] = parseCards(m[2]);
+      if (!hand.heroName) hand.heroName = nm;
+      continue;
+    }
+    if ((m = /^Uncalled bet\s*\(\s*([€$£¥]?[\d.,]+)\s*\)\s*returned to\s+(.+)$/i.exec(line))) {
+      push({ type: 'uncalled', name: m[2].trim(), amount: num(m[1]), street }); continue;
+    }
+    if ((m = /^(.+?)\s+collected\s+\[?\s*([€$£¥]?[\d.,]+)\s*\]?\s+from(?:\s+the)?\s+(?:main pot|side pot(?:-\d+)?|pot)/i.exec(line))) {
+      push({ type: 'collect', name: m[1].trim(), amount: num(m[2]), street }); continue;
+    }
+    if ((m = /^(.+?)\s+(?:wins?|won)\s+(?:the pot\s*)?\(?\s*([€$£¥]?[\d.,]+)\s*\)?/i.exec(line)) && known(m[1].trim())) {
+      push({ type: 'collect', name: m[1].trim(), amount: num(m[2]), street }); continue;
+    }
+
+    if ((m = /^(.+?)\s*:\s+(.*)$/.exec(line))) {
+      const name = m[1].trim(), rest = m[2].trim();
+      if (!known(name)) continue;
+      if (/^said,/i.test(rest)) continue;
+      const a = starsVerb(name, rest, street, hand);
+      if (a) push(a);
+      continue;
+    }
+  }
+  return hand;
+}
+
+/* Shared verb table for the "Name : verb" sites. Bovada capitalises and adds
+   "All-in", "Card dealt to a spot", "Hand result"; PokerStars does not. */
+function starsVerb(name, rest, street, hand) {
+  let m;
+  if (/^folds?\b/i.test(rest)) return { type: 'fold', name, street };
+  if (/^checks?\b/i.test(rest)) return { type: 'check', name, street };
+  if ((m = /^calls?\s+([€$£¥]?[\d.,]+)/i.exec(rest))) return { type: 'call', name, amount: num(m[1]), street };
+  if ((m = /^bets?\s+([€$£¥]?[\d.,]+)/i.exec(rest))) return { type: 'bet', name, amount: num(m[1]), street };
+  if ((m = /^raises?\s+([€$£¥]?[\d.,]+)\s+to\s+([€$£¥]?[\d.,]+)/i.exec(rest))) return { type: 'raise', name, to: num(m[2]), street };
+  /* Bovada: "All-in(raise) $10 to $12" / "All-in(raise-timeout)" / plain "All-in $58.62" */
+  if ((m = /^all-?in\s*\([^)]*raise[^)]*\)\s*([€$£¥]?[\d.,]+)\s+to\s+([€$£¥]?[\d.,]+)/i.exec(rest))) return { type: 'raise', name, to: num(m[2]), street };
+  if ((m = /^all-?in\s*(?:\([^)]*\))?\s*([€$£¥]?[\d.,]+)/i.exec(rest))) return { type: 'allin', name, amount: num(m[1]), street };
+  if ((m = /^posts?\s+(?:the\s+)?ante\s*([€$£¥]?[\d.,]+)?/i.exec(rest))) return { type: 'ante', name, amount: num(m[1] || hand.ante), street: 'preflop' };
+  if (/^posts\s+small\s*&\s*big blinds?/i.test(rest)) {
+    m = /([€$£¥]?[\d.,]+)\s*$/.exec(rest);
+    return { type: 'blind', name, amount: num(m && m[1]), which: 'sb+bb', street: 'preflop' };
+  }
+  if ((m = /^(?:posts\s+)?small\s*blind\s*[:\s]\s*([€$£¥]?[\d.,]+)/i.exec(rest))) return { type: 'blind', name, amount: num(m[1]), which: 'sb', street: 'preflop' };
+  if ((m = /^(?:posts\s+)?big\s*blind\s*[:\s]\s*([€$£¥]?[\d.,]+)/i.exec(rest))) return { type: 'blind', name, amount: num(m[1]), which: 'bb', street: 'preflop' };
+  if ((m = /^posts?\s+(?:a\s+)?straddle\s+([€$£¥]?[\d.,]+)/i.exec(rest))) return { type: 'blind', name, amount: num(m[1]), which: 'straddle', street: 'preflop' };
+  if ((m = /^(?:shows|showed)\s+\[([^\]]+)\](?:\s*\((.+?)\))?/i.exec(rest))) {
+    hand.holeCards[name] = parseCards(m[1]);
+    return { type: 'show', name, cards: parseCards(m[1]), desc: m[2] || '', street };
+  }
+  if ((m = /^Card dealt to a spot\s*\[([^\]]+)\]/i.exec(rest))) {
+    hand.holeCards[name] = parseCards(m[1]);
+    return null;
+  }
+  if ((m = /^Hand result(?:-Side pot)?\s*([€$£¥]?[\d.,]+)/i.exec(rest))) {
+    return { type: 'collect', name, amount: num(m[1]), street };
+  }
+  if (/^mucks/i.test(rest) || /^doesn'?t show/i.test(rest)) return { type: 'muck', name, street };
+  return null;
+}
+
+/* =========================================================================
+   2. Winamax   — no colon after the name, currency suffixed
+   ========================================================================= */
+function parseWinamax(block) {
+  const lines = block.split('\n').map(l => l.replace(/\s+$/, '')).filter(l => l.trim() !== '');
+  if (!lines.length) return null;
+  const hand = blankHand('winamax', block);
+  hand.site = 'Winamax';
+  const head = lines[0];
+
+  const idM = /HandId:\s*#([A-Za-z0-9._-]+)/i.exec(head);
+  hand.id = idM ? idM[1] : '';
+  hand.gameType = /omaha/i.test(head) ? 'Omaha' : "Hold'em";
+  hand.limit = /pot limit/i.test(head) ? 'Pot Limit' : /no limit/i.test(head) ? 'No Limit' : 'Fixed Limit';
+  hand.isTournament = /-\s*Tournament\b/i.test(head);
+  if (hand.isTournament) {
+    const bM = /buyIn:\s*([^-]+?)\s+level:/i.exec(head);
+    if (bM) hand.buyin = bM[1].trim();
+    const lvM = /level:\s*(\d+)/i.exec(head);
+    if (lvM) hand.level = lvM[1];
+    hand.currency = curOf(hand.buyin);
+  }
+  const bl = /\(\s*([\d.,]+)\s*([€$£¥]?)\s*\/\s*([\d.,]+)\s*([€$£¥]?)\s*(?:\/\s*([\d.,]+)\s*([€$£¥]?)\s*)?\)/.exec(head);
+  if (bl) {
+    hand.headerSB = num(bl[1]); hand.headerBB = num(bl[3]);
+    if (bl[5]) hand.ante = num(bl[5]);
+    hand.currency = bl[2] || bl[4] || hand.currency;
+  }
+
+  const tM = /^Table:\s*'([^']*)'\s*(?:(\d+)\s*-\s*max)?/i.exec(lines[1] || '');
+  if (tM) { hand.tableName = tM[1] || ''; hand.maxPlayers = tM[2] ? parseInt(tM[2], 10) : 0; }
+  const btnM = /Seat\s*#\s*(\d+)\s*is the button/i.exec(block);
+  if (btnM) hand.buttonSeat = parseInt(btnM[1], 10);
+
+  for (const line of lines) {
+    if (/^\*\*\*/.test(line)) break;
+    const sM = /^Seat\s+(\d+):\s+(.+?)\s+\(\s*([\d.,]+)\s*([€$£¥]?)\s*\)/i.exec(line);
+    if (sM) hand.players.push({ seat: parseInt(sM[1], 10), name: sM[2].trim(), startStack: num(sM[3]), sittingOut: false });
+  }
+  if (!hand.players.length) { hand.parseWarnings.push('No seats found'); return hand; }
+
+  const names = hand.players.map(p => p.name).sort((a, b) => b.length - a.length);
+  let street = 'preflop', inSummary = false;
+  const push = a => hand.actions.push(a);
+
+  for (let i = 2; i < lines.length; i++) {
+    const line = lines[i];
+    let m;
+    if ((m = /^\*\*\*\s*(ANTE\/BLINDS|PRE-?FLOP|FLOP|TURN|RIVER|SHOW ?DOWN|SUMMARY)\s*\*\*\*(.*)$/i.exec(line))) {
+      const which = m[1].toUpperCase().replace(/\s+/g, ' ');
+      const rest = m[2] || '';
+      if (/ANTE|PRE-?FLOP/.test(which)) street = 'preflop';
+      else if (which === 'FLOP') {
+        street = 'flop';
+        push({ type: 'street', street, cards: parseCards((/\[([^\]]+)\]/.exec(rest) || [])[1]) });
+      } else if (which === 'TURN' || which === 'RIVER') {
+        street = which.toLowerCase();
+        const g = [...rest.matchAll(/\[([^\]]+)\]/g)];
+        push({ type: 'street', street, cards: parseCards(g.length ? g[g.length - 1][1] : '') });
+      } else if (/SHOW/.test(which)) { street = 'showdown'; push({ type: 'street', street, cards: [] }); }
+      else if (which === 'SUMMARY') inSummary = true;
+      continue;
+    }
+    if (inSummary) {
+      if ((m = /^Total pot\s+([\d.,]+)\s*[€$£¥]?(?:.*?\|\s*Rake\s+([\d.,]+))?/i.exec(line))) {
+        hand.totalPot = num(m[1]); if (m[2]) hand.rake = num(m[2]);
+      } else if ((m = /^Board:?\s*\[([^\]]+)\]/i.exec(line))) {
+        const b = parseCards(m[1]); if (b.length > hand.board.length) hand.board = b;
+      } else if ((m = /^Seat\s+\d+:\s+(.+?)\s+(?:\(.*?\)\s*)*showed\s+\[([^\]]+)\]/i.exec(line))) {
+        if (!hand.holeCards[m[1].trim()]) hand.holeCards[m[1].trim()] = parseCards(m[2]);
+      }
+      continue;
+    }
+    if ((m = /^Dealt to\s+(.+?)\s+\[([^\]]+)\]/i.exec(line))) {
+      hand.holeCards[m[1].trim()] = parseCards(m[2]);
+      if (!hand.heroName) hand.heroName = m[1].trim();
+      continue;
+    }
+    const pl = playerLine(line, names);
+    if (!pl) continue;
+    const { name, rest } = pl;
+
+    if (/^folds?\b/i.test(rest)) { push({ type: 'fold', name, street }); continue; }
+    if (/^checks?\b/i.test(rest)) { push({ type: 'check', name, street }); continue; }
+    if ((m = /^raises?\s+[\d.,]+\s*[€$£¥]?\s+to\s+([\d.,]+)/i.exec(rest))) { push({ type: 'raise', name, to: num(m[1]), street }); continue; }
+    if ((m = /^calls?\s+([\d.,]+)/i.exec(rest))) { push({ type: 'call', name, amount: num(m[1]), street }); continue; }
+    if ((m = /^bets?\s+([\d.,]+)/i.exec(rest))) { push({ type: 'bet', name, amount: num(m[1]), street }); continue; }
+    if ((m = /^posts\s+small blind\s+([\d.,]+)/i.exec(rest))) { push({ type: 'blind', name, amount: num(m[1]), which: 'sb', street: 'preflop' }); continue; }
+    if ((m = /^posts\s+big blind\s+([\d.,]+)/i.exec(rest))) { push({ type: 'blind', name, amount: num(m[1]), which: 'bb', street: 'preflop' }); continue; }
+    if ((m = /^posts\s+ante\s+([\d.,]+)/i.exec(rest))) { push({ type: 'ante', name, amount: num(m[1]), street: 'preflop' }); continue; }
+    if ((m = /^shows?\s+\[([^\]]+)\](?:\s*\((.+?)\))?/i.exec(rest))) {
+      hand.holeCards[name] = parseCards(m[1]);
+      push({ type: 'show', name, cards: parseCards(m[1]), desc: m[2] || '', street }); continue;
+    }
+    if ((m = /^collected\s+([\d.,]+)\s*[€$£¥]?\s+from(?:\s+the)?\s+pot/i.exec(rest))) {
+      push({ type: 'collect', name, amount: num(m[1]), street }); continue;
+    }
+    if (/^mucked/i.test(rest)) { push({ type: 'muck', name, street }); continue; }
+  }
+  return hand;
+}
+
+/* =========================================================================
+   3. partypoker + 888poker — "** Dealing Flop **", raise amount = chips ADDED
+   ========================================================================= */
+function parseParty(block) {
+  const lines = block.split('\n').map(l => l.replace(/\s+$/, '')).filter(l => l.trim() !== '');
+  if (!lines.length) return null;
+  const hand = blankHand('party', block);
+  hand.site = /888/i.test(block.slice(0, 400)) ? '888poker' : 'partypoker';
+
+  const hM = /Hand History for Game\s+([A-Za-z0-9._-]+)/i.exec(block);
+  hand.id = hM ? hM[1] : '';
+
+  /* stakes line: "$0.05/$0.10 USD NL Texas Hold'em - ..." | "$0.05/$0.10 Blinds No Limit Holdem - ..."
+     tournaments: "NL Texas Hold'em Trny:12345 Level:5  Blinds-Antes(400/800 -100)" */
+  let stakeLine = '';
+  for (const l of lines.slice(0, 5)) {
+    if (/[\d.,]+\s*\/\s*[€$£¥]?[\d.,]+/.test(l) && !/^Seat/i.test(l)) { stakeLine = l; break; }
+  }
+  hand.isTournament = /Trny:/i.test(block);
+  if (hand.isTournament) {
+    const tM = /Trny:\s*([A-Za-z0-9._-]+)/i.exec(block); if (tM) hand.buyin = 'Trny ' + tM[1];
+    const lvM = /Level:\s*(\d+)/i.exec(block); if (lvM) hand.level = lvM[1];
+    const baM = /Blinds-?Antes?\s*\(\s*([\d.,]+)\s*\/\s*([\d.,]+)\s*(?:-\s*([\d.,]+))?\s*\)/i.exec(block);
+    if (baM) { hand.headerSB = num(baM[1]); hand.headerBB = num(baM[2]); if (baM[3]) hand.ante = num(baM[3]); }
+  }
+  if (!hand.headerBB && stakeLine) {
+    const bM = /([€$£¥]?)\s*([\d.,]+)\s*\/\s*([€$£¥]?)\s*([\d.,]+)/.exec(stakeLine);
+    if (bM) { hand.currency = bM[1] || bM[3]; hand.headerSB = num(bM[2]); hand.headerBB = num(bM[4]); }
+  }
+  if (stakeLine) {
+    hand.limit = /no limit|(^|\s)NL(\s|$)/i.test(stakeLine) ? 'No Limit'
+      : /pot limit|(^|\s)PL(\s|$)/i.test(stakeLine) ? 'Pot Limit' : 'Fixed Limit';
+    hand.gameType = /omaha/i.test(stakeLine) ? 'Omaha' : "Hold'em";
+  }
+
+  const tblM = /^Table\s+(.+?)\s*\((?:Real Money|Play Money|Tournament)\)/im.exec(block);
+  if (tblM) {
+    hand.tableName = tblM[1].trim();
+    const mx = /(\d+)\s*Max/i.exec(hand.tableName);
+    if (mx) hand.maxPlayers = parseInt(mx[1], 10);
+  }
+  const totM = /Total number of players\s*:\s*(\d+)\s*(?:\/\s*(\d+))?/i.exec(block);
+  if (totM && totM[2]) hand.maxPlayers = parseInt(totM[2], 10);
+  const btnM = /^Seat\s+(\d+)\s+is the button/im.exec(block);
+  if (btnM) hand.buttonSeat = parseInt(btnM[1], 10);
+
+  for (const line of lines) {
+    const sM = /^Seat\s+(\d+):\s+(.+?)\s+\(\s*([€$£¥]?\s*[\d.,]+)(?:\s*[A-Z]{3})?\s*\)/i.exec(line);
+    if (sM) {
+      const stack = num(sM[3]);
+      hand.players.push({ seat: parseInt(sM[1], 10), name: sM[2].trim(), startStack: stack, sittingOut: false });
+      if (!hand.currency) hand.currency = curOf(sM[3]);
+    }
+  }
+  /* seats with a zero stack are empty placeholders on party, drop them */
+  hand.players = hand.players.filter(p => p.startStack > 0);
+  if (!hand.players.length) { hand.parseWarnings.push('No seats found'); return hand; }
+
+  const names = hand.players.map(p => p.name).sort((a, b) => b.length - a.length);
+  let street = 'preflop';
+  const push = a => hand.actions.push(a);
+  /* running street total per player so "raise = chips added" can be converted */
+  const streetBet = {};
+  const resetStreet = () => { for (const k of Object.keys(streetBet)) delete streetBet[k]; };
+  const add = (name, v) => { streetBet[name] = (streetBet[name] || 0) + v; return streetBet[name]; };
+
+  for (const line of lines) {
+    let m;
+    if ((m = /^\*\*\s*Dealing\s+(down cards|flop|turn|river)\s*\*\*(.*)$/i.exec(line))) {
+      const which = m[1].toLowerCase(), rest = m[2] || '';
+      if (which === 'down cards') { street = 'preflop'; continue; }
+      resetStreet();
+      street = which;
+      push({ type: 'street', street, cards: parseCards((/\[([^\]]+)\]/.exec(rest) || [])[1]) });
+      continue;
+    }
+    if (/^\*\*\s*Summary\s*\*\*/i.test(line)) { street = 'showdown'; continue; }
+    if ((m = /^Dealt to\s+(.+?)\s+\[([^\]]+)\]/i.exec(line))) {
+      hand.holeCards[m[1].trim()] = parseCards(m[2]);
+      if (!hand.heroName) hand.heroName = m[1].trim();
+      continue;
+    }
+    if ((m = /^Total pot\s*[:\s]\s*([€$£¥]?[\d.,]+)/i.exec(line))) { hand.totalPot = num(m[1]); continue; }
+    if ((m = /^Board\s*:?\s*\[([^\]]+)\]/i.exec(line))) {
+      const b = parseCards(m[1]); if (b.length > hand.board.length) hand.board = b;
+      continue;
+    }
+
+    const pl = playerLine(line, names);
+    if (!pl) continue;
+    const { name, rest } = pl;
+
+    if (/^(?:has left|has joined|is sitting out|is timed out|shows a|does not show)/i.test(rest)) {
+      if (/^does not show/i.test(rest)) push({ type: 'muck', name, street });
+      continue;
+    }
+    if (/^folds?\b/i.test(rest)) { push({ type: 'fold', name, street }); continue; }
+    if (/^checks?\b/i.test(rest)) { push({ type: 'check', name, street }); continue; }
+    if ((m = /^posts small blind\s*\[?\s*([€$£¥]?[\d.,]+)/i.exec(rest))) {
+      add(name, num(m[1])); push({ type: 'blind', name, amount: num(m[1]), which: 'sb', street: 'preflop' }); continue;
+    }
+    if ((m = /^posts big blind\s*\[?\s*([€$£¥]?[\d.,]+)/i.exec(rest))) {
+      add(name, num(m[1])); push({ type: 'blind', name, amount: num(m[1]), which: 'bb', street: 'preflop' }); continue;
+    }
+    if ((m = /^posts (?:the )?ante\s*\[?\s*([€$£¥]?[\d.,]+)/i.exec(rest))) {
+      push({ type: 'ante', name, amount: num(m[1]), street: 'preflop' }); continue;
+    }
+    if ((m = /^calls?\s*\[?\s*([€$£¥]?[\d.,]+)/i.exec(rest))) {
+      const v = num(m[1]); add(name, v);
+      push({ type: 'call', name, amount: v, street }); continue;
+    }
+    if ((m = /^bets?\s*\[?\s*([€$£¥]?[\d.,]+)/i.exec(rest))) {
+      const v = num(m[1]); add(name, v);
+      push({ type: 'bet', name, amount: v, street }); continue;
+    }
+    /* party/888 give the chips ADDED — convert to a street total for the engine */
+    if ((m = /^raises?\s*\[?\s*([€$£¥]?[\d.,]+)/i.exec(rest))) {
+      const v = num(m[1]); const to = add(name, v);
+      push({ type: 'raise', name, to, street }); continue;
+    }
+    if ((m = /^is all-?in\s*\[?\s*([€$£¥]?[\d.,]+)/i.exec(rest))) {
+      const v = num(m[1]); const to = add(name, v);
+      push({ type: 'raise', name, to, street }); continue;
+    }
+    if ((m = /^shows?\s*\[([^\]]+)\]/i.exec(rest))) {
+      hand.holeCards[name] = parseCards(m[1]);
+      push({ type: 'show', name, cards: parseCards(m[1]), desc: '', street: 'showdown' }); continue;
+    }
+    if ((m = /^(?:wins|collected)\s*\[?\s*([€$£¥]?[\d.,]+)/i.exec(rest))) {
+      push({ type: 'collect', name, amount: num(m[1]), street }); continue;
+    }
+  }
+  return hand;
+}
+
+/* =========================================================================
+   4. Winning Poker Network / ACR native
+   ========================================================================= */
+function parseWPN(block) {
+  const lines = block.split('\n').map(l => l.replace(/\s+$/, '')).filter(l => l.trim() !== '');
+  if (!lines.length) return null;
+  const hand = blankHand('wpn', block);
+  hand.site = 'WPN / ACR';
+
+  const idLine = lines.find(l => /^Game ID:/i.test(l)) || '';
+  const idM = /^Game ID:\s*(\d+)\s+([\d.,]+)\s*\/\s*([\d.,]+)\s*(.*)$/i.exec(idLine);
+  if (idM) {
+    hand.id = idM[1];
+    hand.headerSB = num(idM[2]); hand.headerBB = num(idM[3]);
+    hand.tableName = (idM[4] || '').replace(/\((?:Hold'?em|Omaha)[^)]*\)/i, '').replace(/\s+/g, ' ').trim();
+  }
+  hand.isTournament = /\(Tournament/i.test(idLine) || /Tournament/i.test(lines[0] || '');
+  hand.gameType = /omaha/i.test(idLine) ? 'Omaha' : "Hold'em";
+
+  const btnM = /^Seat\s+(\d+)\s+is the button/im.exec(block);
+  if (btnM) hand.buttonSeat = parseInt(btnM[1], 10);
+
+  for (const line of lines) {
+    const sM = /^Seat\s+(\d+):\s+(.+?)\s+\(\s*([\d.,]+)\s*\)\s*\.?\s*$/i.exec(line);
+    if (sM) hand.players.push({ seat: parseInt(sM[1], 10), name: sM[2].trim(), startStack: num(sM[3]), sittingOut: false });
+  }
+  if (!hand.players.length) { hand.parseWarnings.push('No seats found'); return hand; }
+
+  const names = hand.players.map(p => p.name).sort((a, b) => b.length - a.length);
+  let street = 'preflop', inSummary = false;
+  const push = a => hand.actions.push(a);
+  const heroCards = {};
+
+  for (const line of lines) {
+    let m;
+    if ((m = /^\*\*\*\s*(FLOP|TURN|RIVER)\s*\*\*\*\s*:?(.*)$/i.exec(line))) {
+      street = m[1].toLowerCase();
+      const g = [...(m[2] || '').matchAll(/\[([^\]]+)\]/g)];
+      const cards = street === 'flop'
+        ? parseCards(g.length ? g[0][1] : '')
+        : parseCards(g.length ? g[g.length - 1][1] : '');
+      push({ type: 'street', street, cards });
+      continue;
+    }
+    if (/^-+\s*Summary\s*-+/i.test(line)) { inSummary = true; street = 'showdown'; continue; }
+
+    if (inSummary) {
+      if ((m = /^Pot:\s*([\d.,]+)\.?(?:\s*Rake\s*([\d.,]+))?/i.exec(line))) {
+        hand.totalPot = num(m[1]); if (m[2]) hand.rake = num(m[2]);
+      } else if ((m = /^Board:\s*\[([^\]]+)\]/i.exec(line))) {
+        const b = parseCards(m[1]); if (b.length > hand.board.length) hand.board = b;
+      } else if ((m = /^\*?Player\s+(.+?)\s+shows:\s*.*?\[([^\]]+)\]/i.exec(line))) {
+        const nm = m[1].trim();
+        hand.holeCards[nm] = parseCards(m[2]);
+        push({ type: 'show', name: nm, cards: parseCards(m[2]), desc: '', street: 'showdown' });
+      }
+      /* winner: "... Collects: 7.73. Wins: 3.66." */
+      if ((m = /^\*?Player\s+(.+?)\s+(?:shows|does not show|mucks)[\s\S]*?Collects:\s*([\d.,]+)/i.exec(line))) {
+        const won = num(m[2]);
+        if (won > 0) push({ type: 'collect', name: m[1].trim(), amount: won, street: 'showdown' });
+      }
+      continue;
+    }
+
+    if (!/^Player\s/i.test(line)) continue;
+    const pl = playerLine(line.replace(/^Player\s+/i, ''), names);
+    if (!pl) continue;
+    const { name, rest } = pl;
+
+    if ((m = /^received card:\s*\[([^\]]+)\]/i.exec(rest))) {
+      (heroCards[name] = heroCards[name] || []).push(...parseCards(m[1]));
+      continue;
+    }
+    if (/^received a card/i.test(rest)) continue;
+    if (/^folds?\b/i.test(rest)) { push({ type: 'fold', name, street }); continue; }
+    if (/^checks?\b/i.test(rest)) { push({ type: 'check', name, street }); continue; }
+    if ((m = /^has small blind\s*\(?\s*([\d.,]+)/i.exec(rest))) { push({ type: 'blind', name, amount: num(m[1]), which: 'sb', street: 'preflop' }); continue; }
+    if ((m = /^has big blind\s*\(?\s*([\d.,]+)/i.exec(rest))) { push({ type: 'blind', name, amount: num(m[1]), which: 'bb', street: 'preflop' }); continue; }
+    if ((m = /^(?:posts|has)\s+ante\s*\(?\s*([\d.,]+)/i.exec(rest))) { push({ type: 'ante', name, amount: num(m[1]), street: 'preflop' }); continue; }
+    if ((m = /^calls?\s*\(?\s*([\d.,]+)/i.exec(rest))) { push({ type: 'call', name, amount: num(m[1]), street }); continue; }
+    if ((m = /^bets?\s*\(?\s*([\d.,]+)/i.exec(rest))) { push({ type: 'bet', name, amount: num(m[1]), street }); continue; }
+    if ((m = /^raises?\s*\(?\s*([\d.,]+)/i.exec(rest))) { push({ type: 'raise', name, to: num(m[1]), street }); continue; }
+    if ((m = /^(?:allin|all-in|goes all-in)\s*\(?\s*([\d.,]+)/i.exec(rest))) { push({ type: 'allin', name, amount: num(m[1]), street }); continue; }
+    if ((m = /^mucks/i.test(rest))) { push({ type: 'muck', name, street }); continue; }
+  }
+
+  /* the player whose individual cards were logged is the hero */
+  for (const [nm, cards] of Object.entries(heroCards)) {
+    if (cards.length >= 2) { hand.holeCards[nm] = cards; if (!hand.heroName) hand.heroName = nm; }
+  }
+  return hand;
+}
+
+/* =========================================================================
+   5. iPoker — XML with numeric action codes
+      0 fold  1 SB  2 BB  3 call  4 check  5 bet  6/7 all-in
+      8/9 sitting out  15 ante  23 raise      (sum = street total)
+   ========================================================================= */
+const IPOKER_ACTION = {
+  0: 'fold', 1: 'sb', 2: 'bb', 3: 'call', 4: 'check', 5: 'bet',
+  6: 'allin', 7: 'allin', 8: 'skip', 9: 'skip', 15: 'ante', 23: 'raise'
+};
+function attrs(tag) {
+  const out = {};
+  const re = /([\w-]+)\s*=\s*"([^"]*)"/g;
+  let m; while ((m = re.exec(tag))) out[m[1]] = m[2];
+  return out;
+}
+function parseIPoker(block) {
+  const hand = blankHand('ipoker', block);
+  hand.site = 'iPoker';
+
+  const gc = /<game\b[^>]*gamecode="([^"]*)"/i.exec(block);
+  hand.id = gc ? gc[1] : '';
+  const gt = /<gametype>([^<]*)<\/gametype>/i.exec(block);
+  const tn = /<tablename>([^<]*)<\/tablename>/i.exec(block);
+  if (tn) hand.tableName = tn[1].trim();
+  const tc = /<tablecurrency>([^<]*)<\/tablecurrency>/i.exec(block);
+  if (gt) {
+    const g = gt[1];
+    hand.gameType = /omaha/i.test(g) ? 'Omaha' : "Hold'em";
+    hand.limit = /\bNL\b|no limit/i.test(g) ? 'No Limit' : /\bPL\b|pot limit/i.test(g) ? 'Pot Limit' : 'Fixed Limit';
+    const bM = /([€$£¥]?)\s*([\d.,]+)\s*\/\s*([€$£¥]?)\s*([\d.,]+)/.exec(g);
+    if (bM) { hand.currency = bM[1] || bM[3]; hand.headerSB = num(bM[2]); hand.headerBB = num(bM[4]); }
+  }
+  if (!hand.currency && tc) hand.currency = /USD/i.test(tc[1]) ? '$' : /EUR/i.test(tc[1]) ? '€' : /GBP/i.test(tc[1]) ? '£' : '';
+  hand.isTournament = /<tournament/i.test(block) || /tournament/i.test((tn && tn[1]) || '');
+
+  const pRe = /<player\b([^>]*)\/?>/gi;
+  let m;
+  while ((m = pRe.exec(block))) {
+    const a = attrs(m[0]);
+    if (!a.name) continue;
+    hand.players.push({
+      seat: parseInt(a.seat, 10) || hand.players.length + 1,
+      name: a.name,
+      startStack: num(a.chips),
+      sittingOut: false
+    });
+    if (a.dealer === '1') hand.buttonSeat = parseInt(a.seat, 10);
+  }
+  if (!hand.players.length) { hand.parseWarnings.push('No players found'); return hand; }
+
+  const push = a => hand.actions.push(a);
+  const roundRe = /<round\b([^>]*)>([\s\S]*?)<\/round>/gi;
+  let r;
+  while ((r = roundRe.exec(block))) {
+    const rn = parseInt(attrs('<round ' + r[1] + '>').no, 10);
+    const body = r[2];
+    const street = rn <= 1 ? 'preflop' : rn === 2 ? 'flop' : rn === 3 ? 'turn' : rn === 4 ? 'river' : 'showdown';
+
+    /* community cards for this round */
+    const cRe = /<cards\b([^>]*)>([^<]*)<\/cards>/gi;
+    let c;
+    while ((c = cRe.exec(body))) {
+      const a = attrs('<cards ' + c[1] + '>');
+      const type = (a.type || '').toLowerCase();
+      const cards = parseCards(c[2].replace(/\bX\b/g, ''));
+      if (type === 'pocket') {
+        if (a.player && cards.length) {
+          hand.holeCards[a.player] = cards;
+          if (!hand.heroName) hand.heroName = a.player;
+        }
+      } else if (/flop|turn|river/.test(type) && cards.length) {
+        push({ type: 'street', street: type, cards });
+      }
+    }
+
+    const aRe = /<action\b([^>]*)\/?>/gi;
+    let ac;
+    while ((ac = aRe.exec(body))) {
+      const a = attrs(ac[0]);
+      const kind = IPOKER_ACTION[parseInt(a.type, 10)];
+      if (!kind || kind === 'skip') continue;
+      const name = a.player, v = num(a.sum);
+      if (kind === 'fold') push({ type: 'fold', name, street });
+      else if (kind === 'check') push({ type: 'check', name, street });
+      else if (kind === 'call') push({ type: 'call', name, amount: v, street });
+      else if (kind === 'bet') push({ type: 'bet', name, amount: v, street });
+      else if (kind === 'raise') push({ type: 'raise', name, to: v, street });
+      else if (kind === 'allin') push({ type: 'allin', name, amount: v, street });
+      else if (kind === 'sb') push({ type: 'blind', name, amount: v, which: 'sb', street: 'preflop' });
+      else if (kind === 'bb') push({ type: 'blind', name, amount: v, which: 'bb', street: 'preflop' });
+      else if (kind === 'ante') push({ type: 'ante', name, amount: v, street: 'preflop' });
+    }
+  }
+
+  /* winners come from the win= attribute on <player> */
+  const pRe2 = /<player\b([^>]*)\/?>/gi;
+  while ((m = pRe2.exec(block))) {
+    const a = attrs(m[0]);
+    const w = num(a.win);
+    if (a.name && w > 0) push({ type: 'collect', name: a.name, amount: w, street: 'showdown' });
+  }
+  return hand;
+}
+
+/* =========================================================================
+   6. Generic catch-all — for club apps and home-brew exports nobody
+      documents (PokerBros, Pokerrrr2, X-Poker, ClubGG, tracker copy-paste).
+      Assumes almost nothing: find seats, find names, find verbs and numbers.
+   ========================================================================= */
+const AMOUNT = '[\\(\\[]?\\s*(?:[€$£¥]\\s*)?([\\d][\\d.,]*)\\s*(?:[€$£¥])?';
+
+function parseGeneric(block) {
+  const lines = block.split('\n').map(l => l.replace(/\s+$/, '')).filter(l => l.trim() !== '');
+  if (!lines.length) return null;
+  const hand = blankHand('generic', block);
+  hand.site = 'Unknown';
+
+  const head = lines[0] || '';
+  const idM = /(?:Hand|Game)\s*(?:History)?\s*(?:ID)?\s*[#:]\s*([A-Za-z0-9._-]{2,})/i.exec(block);
+  if (idM) hand.id = idM[1];
+  hand.gameType = /omaha/i.test(block.slice(0, 300)) ? 'Omaha' : "Hold'em";
+  hand.limit = /pot\s*limit|\bPL\b/i.test(head) ? 'Pot Limit'
+    : /fixed\s*limit/i.test(head) ? 'Fixed Limit' : 'No Limit';
+  hand.isTournament = /tournament|trny|\blevel\b/i.test(head);
+  hand.currency = curOf(block.slice(0, 400));
+
+  const bM = new RegExp('[\\(\\s]' + AMOUNT + '\\s*/\\s*' + AMOUNT).exec(head);
+  if (bM) { hand.headerSB = num(bM[1]); hand.headerBB = num(bM[2]); }
+
+  const btnM = /Seat\s*#?\s*(\d+)\s*(?:is|=)?\s*(?:the\s*)?(?:button|dealer|BTN)/i.exec(block)
+    || /(?:button|dealer)\s*(?:is|=|:)?\s*(?:seat\s*)?#?\s*(\d+)/i.exec(block);
+  if (btnM) hand.buttonSeat = parseInt(btnM[1], 10);
+
+  /* seats: "Seat 3: Name (123.45)" with anything at all inside the brackets */
+  for (const line of lines) {
+    const m = new RegExp('^\\s*Seat\\s*#?\\s*(\\d+)\\s*[:.\\-]\\s*(.+?)\\s*' + AMOUNT).exec(line);
+    if (!m) continue;
+    const name = m[2].replace(/[\(\[].*$/, '').replace(/[\s:.\-]+$/, '').trim();
+    if (!name || hand.players.some(p => p.seat === parseInt(m[1], 10))) continue;
+    hand.players.push({ seat: parseInt(m[1], 10), name, startStack: num(m[3]), sittingOut: /sitting out/i.test(line) });
+  }
+  if (!hand.players.length) { hand.parseWarnings.push('No seats found'); return hand; }
+
+  const names = hand.players.map(p => p.name).sort((a, b) => b.length - a.length);
+  let street = 'preflop';
+  const push = a => hand.actions.push(a);
+  const A = new RegExp(AMOUNT);
+
+  for (const line of lines) {
+    let m;
+    /* streets — any of the common spellings, but only when the marker opens the
+       line (bar decoration), so "folds on the river" in chat can't trigger it */
+    if ((m = /^[\s*\-=]*(?:Dealing\s+(?:the\s+)?)?(FLOP|TURN|RIVER|SHOW\s?DOWN|SUMMARY)\b[\s*\-=]*:?(.*)$/i.exec(line))) {
+      const which = m[1].toUpperCase().replace(/\s+/g, '');
+      const rest = m[2] || '';
+      const groups = [...rest.matchAll(/\[([^\]]+)\]/g)];
+      if (which === 'SUMMARY') { street = 'showdown'; continue; }
+      if (which === 'SHOWDOWN') { street = 'showdown'; push({ type: 'street', street, cards: [] }); continue; }
+      if (!groups.length && which !== 'FLOP') continue;
+      street = which.toLowerCase();
+      const cards = which === 'FLOP'
+        ? parseCards(groups.length ? groups[0][1] : '')
+        : parseCards(groups.length ? groups[groups.length - 1][1] : '');
+      push({ type: 'street', street, cards });
+      continue;
+    }
+    if ((m = /^(?:Dealt to|Cards dealt to)\s+(.+?)\s*[\[\(]([^\]\)]+)[\]\)]/i.exec(line))) {
+      hand.holeCards[m[1].trim()] = parseCards(m[2]);
+      if (!hand.heroName) hand.heroName = m[1].trim();
+      continue;
+    }
+    if ((m = /^Total\s+pot\s*[:\s(]\s*([\d.,]+)/i.exec(line))) { hand.totalPot = num(m[1]); continue; }
+    if ((m = /^Board\s*:?\s*\[([^\]]+)\]/i.exec(line))) {
+      const b = parseCards(m[1]); if (b.length > hand.board.length) hand.board = b;
+      continue;
+    }
+
+    /* actions: tolerate "Player Name: verb", "Name verb", "Player Name verb" */
+    const stripped = line.replace(/^Player\s+/i, '');
+    const pl = playerLine(stripped, names);
+    if (!pl) continue;
+    const name = pl.name;
+    const rest = pl.rest;
+
+    if (/^folds?\b|^fold\b/i.test(rest)) { push({ type: 'fold', name, street }); continue; }
+    if (/^checks?\b/i.test(rest)) { push({ type: 'check', name, street }); continue; }
+    if ((m = new RegExp('^(?:posts?\\s+)?(?:the\\s+)?small\\s*blind\\s*[:\\s]?\\s*' + AMOUNT, 'i').exec(rest))) {
+      push({ type: 'blind', name, amount: num(m[1]), which: 'sb', street: 'preflop' }); continue;
+    }
+    if ((m = new RegExp('^(?:posts?\\s+)?(?:the\\s+)?big\\s*blind\\s*[:\\s]?\\s*' + AMOUNT, 'i').exec(rest))) {
+      push({ type: 'blind', name, amount: num(m[1]), which: 'bb', street: 'preflop' }); continue;
+    }
+    if ((m = new RegExp('^(?:posts?|has)\\s+(?:the\\s+)?ante\\s*' + AMOUNT, 'i').exec(rest))) {
+      push({ type: 'ante', name, amount: num(m[1]), street: 'preflop' }); continue;
+    }
+    if ((m = new RegExp('^(?:posts?\\s+)?straddle\\s*' + AMOUNT, 'i').exec(rest))) {
+      push({ type: 'blind', name, amount: num(m[1]), which: 'straddle', street: 'preflop' }); continue;
+    }
+    if ((m = new RegExp('^raises?\\s*(?:by\\s*)?' + AMOUNT + '\\s*to\\s*' + AMOUNT, 'i').exec(rest))) {
+      push({ type: 'raise', name, to: num(m[2]), street }); continue;
+    }
+    if ((m = new RegExp('^raises?\\s*(?:to\\s*)?' + AMOUNT, 'i').exec(rest))) {
+      push({ type: 'raise', name, to: num(m[1]), street }); continue;
+    }
+    if ((m = new RegExp('^calls?\\s*' + AMOUNT, 'i').exec(rest))) { push({ type: 'call', name, amount: num(m[1]), street }); continue; }
+    if ((m = new RegExp('^bets?\\s*' + AMOUNT, 'i').exec(rest))) { push({ type: 'bet', name, amount: num(m[1]), street }); continue; }
+    if ((m = new RegExp('^(?:is\\s+)?all[-\\s]?in\\s*(?:\\([^)]*\\))?\\s*' + AMOUNT, 'i').exec(rest))) {
+      push({ type: 'allin', name, amount: num(m[1]), street }); continue;
+    }
+    if ((m = /^(?:shows?|showed|shows down)\s*[\[\(]([^\]\)]+)[\]\)](?:\s*\((.+?)\))?/i.exec(rest))) {
+      hand.holeCards[name] = parseCards(m[1]);
+      push({ type: 'show', name, cards: parseCards(m[1]), desc: m[2] || '', street: 'showdown' }); continue;
+    }
+    if (/^mucks|^does not show|^doesn'?t show/i.test(rest)) { push({ type: 'muck', name, street }); continue; }
+    if ((m = new RegExp('^(?:collected|collects|wins?|won)\\s*(?:the\\s+pot\\s*)?' + AMOUNT, 'i').exec(rest))) {
+      push({ type: 'collect', name, amount: num(m[1]), street }); continue;
+    }
+  }
+  return hand;
+}
+
+/* =========================================================================
+   Normalisation shared by every format
+   ========================================================================= */
+function mode(arr) {
+  if (!arr.length) return 0;
+  const c = {}; let best = arr[0], bc = 0;
+  for (const v of arr) { c[v] = (c[v] || 0) + 1; if (c[v] > bc) { bc = c[v]; best = v; } }
+  return best;
+}
+
+/* Run it twice (or three times). Some rooms label the extra run-outs
+   ("*** SECOND TURN ***") and the parser tags those; the rest just deal
+   another flop or turn once the first board is complete. Either way a street
+   that repeats — or steps backwards — starts a fresh run rather than adding a
+   sixth card to the board. Streets already tagged by a parser win, so a room
+   that interleaves FIRST/SECOND still lands each card on the right board. */
+const STREET_RANK = { flop: 1, turn: 2, river: 3 };
+function tagRuns(actions) {
+  let run = 1, lastRank = 0;
+  for (const a of actions) {
+    if (a.type !== 'street') continue;
+    const rank = STREET_RANK[a.street] || 0;
+    if (!rank) { a.run = run; continue; }          /* showdown sits in whatever run it follows */
+    if (a.run && a.run !== run) { run = a.run; lastRank = 0; }
+    else if (rank <= lastRank) { run++; lastRank = 0; }
+    a.run = run; lastRank = rank;
+  }
+}
+
+function finalise(hand) {
+  if (!hand || !hand.players.length) return hand;
+
+  /* Blinds observed in the posts beat the header every time. It is the only
+     way to get Bovada right (no stakes in the header at all) and Fixed Limit
+     right (the header states bet sizes, not blinds). */
+  const bbPosts = hand.actions.filter(a => a.type === 'blind' && a.which === 'bb' && a.amount > 0).map(a => a.amount);
+  const sbPosts = hand.actions.filter(a => a.type === 'blind' && a.which === 'sb' && a.amount > 0).map(a => a.amount);
+  hand.bb = mode(bbPosts) || hand.headerBB;
+  hand.sb = mode(sbPosts) || hand.headerSB || (hand.bb ? hand.bb / 2 : 0);
+  if (!hand.ante) {
+    const antes = hand.actions.filter(a => a.type === 'ante' && a.amount > 0).map(a => a.amount);
+    if (antes.length) hand.ante = mode(antes);
+  }
+  if (!hand.bb) hand.parseWarnings.push('Could not work out the big blind');
+
+  assignPositions(hand.players, hand.buttonSeat);
+
+  tagRuns(hand.actions);
+
+  if (!hand.board.length) {
+    const b = [];
+    for (const a of hand.actions) if (a.type === 'street' && a.cards && a.run === 1) b.push(...a.cards);
+    hand.board = b.slice(0, 5);
+  }
+  hand.winners = hand.actions.filter(a => a.type === 'collect').map(a => a.name);
+  if (!hand.heroName) {
+    const h = hand.players.find(p => /^hero$/i.test(p.name)) || hand.players.find(p => /\[ME\]/i.test(p.name));
+    if (h) hand.heroName = h.name;
+  }
+  return hand;
+}
+
+const PARSERS = {
+  stars: b => parseStars(b, 'stars'),
+  bovada: b => parseStars(b, 'bovada'),
+  winamax: parseWinamax,
+  party: parseParty,
+  wpn: parseWPN,
+  ipoker: parseIPoker,
+  generic: parseGeneric
+};
+
+/* How well does this reading explain the text? Rather than trusting format
+   detection, run every parser and keep whichever produces the most coherent
+   hand. Costs microseconds and means an unknown room still replays. */
+function scoreParse(h) {
+  if (!h || !h.players || !h.players.length) return -1;
+  let s = h.players.length * 10 + h.actions.length * 6;
+  if (h.bb > 0) s += 120;
+  if (h.actions.some(a => a.type === 'blind')) s += 40;
+  if (h.actions.some(a => a.type === 'collect')) s += 25;
+  if (h.board.length) s += 20;
+  if (Object.keys(h.holeCards).length) s += 15;
+  if (h.heroName) s += 10;
+  /* a reading that invents impossible stacks is a bad reading */
+  if (h.players.some(p => !isFinite(p.startStack) || p.startStack <= 0)) s -= 60;
+  return s;
+}
+
+function bestParse(block, preferred) {
+  const order = Object.keys(PARSERS);
+  if (preferred) order.sort((a, b) => (a === preferred ? -1 : b === preferred ? 1 : 0));
+  let best = null, bestScore = 0;
+  for (const fmt of order) {
+    let h = null;
+    try { h = finalise(PARSERS[fmt](block)); } catch (e) { h = null; }
+    const s = scoreParse(h);
+    if (s > bestScore) { bestScore = s; best = h; }
+  }
+  return best;
+}
+
+function parseHands(text) {
+  const out = [];
+  for (const { fmt, block } of splitHands(text)) {
+    const h = bestParse(block, fmt);
+    if (h) out.push(h);
+  }
+  /* Nothing split cleanly? Take one more run at the whole paste. */
+  if (!out.length) {
+    const h = bestParse(String(text).replace(/\r\n?/g, '\n').trim(), null);
+    if (h) out.push(h);
+  }
+  return out;
+}
+
+/* =========================================================================
+   Frame builder
+   ========================================================================= */
+function cloneState(s) {
+  return {
+    players: s.players.map(p => ({ ...p, cards: p.cards ? p.cards.slice() : [] })),
+    pot: s.pot, board: s.board.slice(), street: s.street, acting: s.acting
+  };
+}
+
+function buildFrames(hand) {
+  const frames = [], byName = {};
+  const state = {
+    players: hand.players.map(p => {
+      const o = {
+        seat: p.seat, name: p.name, pos: p.pos, startStack: p.startStack, stack: p.startStack,
+        bet: 0, invested: 0, cards: [], folded: false, allIn: false,
+        winner: false, won: 0, revealed: false, label: ''
+      };
+      byName[p.name] = o; return o;
+    }),
+    pot: 0, board: [], street: 'preflop', acting: null
+  };
+  /* the felt shows one board at a time; runOne is kept so a later run-out can
+     rewind to the cards the two runs share */
+  let run = 1, runOne = [];
+  const snap = (label, detail, kind) => {
+    const f = cloneState(state);
+    f.label = label; f.detail = detail || ''; f.kind = kind || 'action';
+    frames.push(f); return f;
+  };
+  /* Sweep the bets into the pot at the end of a round — but first hand back
+     any excess nobody covered. PokerStars states this explicitly ("Uncalled
+     bet returned"); party/888/WPN never do, and they disagree on whether the
+     stated win includes it. Applying the actual rule makes every site agree,
+     and it is also what produces correct side pots when a short stack is in. */
+  const collectBets = () => {
+    /* Compare against every seat, not just the ones with chips out: when a
+       lone bettor takes it down uncontested the second-highest bet is zero
+       and the whole bet comes back. */
+    const bets = state.players.map(p => p.bet).sort((a, b) => b - a);
+    if (bets.length && bets[0] > 0) {
+      const second = bets.length > 1 ? bets[1] : 0;
+      if (bets[0] > second + 1e-9) {
+        const owner = state.players.find(p => p.bet === bets[0]);
+        const excess = bets[0] - second;
+        owner.bet -= excess; owner.stack += excess; owner.invested -= excess;
+        if (owner.stack > 0) owner.allIn = false;
+      }
+    }
+    for (const p of state.players) { state.pot += p.bet; p.bet = 0; p.label = ''; }
+  };
+  const commit = (p, amount) => {
+    const amt = Math.min(Math.max(amount, 0), p.stack);
+    p.stack -= amt; p.bet += amt; p.invested += amt;
+    if (p.stack <= 1e-7) { p.stack = 0; p.allIn = true; }
+    return amt;
+  };
+  const maxBet = () => state.players.reduce((m, q) => Math.max(m, q.bet), 0);
+
+  let anteTotal = 0;
+  for (const a of hand.actions.filter(x => x.type === 'ante' || x.type === 'blind')) {
+    const p = byName[a.name]; if (!p) continue;
+    if (a.type === 'ante') {
+      const amt = Math.min(a.amount, p.stack);
+      p.stack -= amt; p.invested += amt; state.pot += amt; anteTotal += amt;
+      if (p.stack <= 0) { p.stack = 0; p.allIn = true; }
+    } else {
+      commit(p, a.amount);
+      p.label = a.which === 'sb' ? 'SB' : a.which === 'bb' ? 'BB' : a.which === 'straddle' ? 'STR' : 'SB+BB';
+    }
+  }
+  for (const [nm, cards] of Object.entries(hand.holeCards)) {
+    if (byName[nm]) { byName[nm].cards = cards; byName[nm].revealed = (nm === hand.heroName); }
+  }
+  snap('PREFLOP', 'Blinds posted' + (anteTotal > 0 ? ' · antes in' : ''), 'deal');
+
+  for (const a of hand.actions) {
+    const p = a.name ? byName[a.name] : null;
+    switch (a.type) {
+      case 'ante': case 'blind': break;
+      case 'street': {
+        collectBets(); state.street = a.street; state.acting = null;
+        for (const q of state.players) q.label = '';
+        const r = a.run || 1;
+        if (r !== run) {
+          /* a second or third run-out: clear back to the cards both runs share
+             — the flop if they ran it from the flop, flop+turn from the turn */
+          const shared = a.street === 'turn' ? 3 : a.street === 'river' ? 4 : 0;
+          state.board = runOne.slice(0, shared);
+          run = r;
+        }
+        if (a.cards && a.cards.length) state.board.push(...a.cards);
+        if (state.board.length > 5) state.board.length = 5;
+        if (run === 1) runOne = state.board.slice();
+        const isShowdown = a.street === 'showdown';
+        const f = snap(isShowdown ? 'SHOWDOWN' : a.street.toUpperCase(),
+                       (run > 1 && !isShowdown) ? 'Run ' + run : '', 'street');
+        f.run = isShowdown ? 1 : run;
+        break;
+      }
+      case 'fold':
+        if (!p) break;
+        p.folded = true; p.label = 'FOLD'; state.acting = p.seat;
+        snap(a.street.toUpperCase(), p.pos + ' folds', 'action');
+        break;
+      case 'check':
+        if (!p) break;
+        p.label = 'CHECK'; state.acting = p.seat;
+        snap(a.street.toUpperCase(), p.pos + ' checks', 'action');
+        break;
+      case 'call':
+        if (!p) break;
+        commit(p, a.amount); p.label = p.allIn ? 'ALL-IN' : 'CALL'; state.acting = p.seat;
+        snap(a.street.toUpperCase(), p.pos + ' calls', 'action').amount = p.bet;
+        break;
+      case 'bet':
+        if (!p) break;
+        commit(p, a.amount); p.label = p.allIn ? 'ALL-IN' : 'BET'; state.acting = p.seat;
+        snap(a.street.toUpperCase(), p.pos + ' bets', 'action').amount = p.bet;
+        break;
+      case 'raise': {
+        if (!p) break;
+        /* Safety net: a raise must beat the current bet. If it does not, the
+           site logged chips-added rather than a street total. */
+        let target = a.to;
+        if (target <= maxBet() + 1e-9) target = p.bet + a.to;
+        commit(p, target - p.bet);
+        p.label = p.allIn ? 'ALL-IN' : 'RAISE'; state.acting = p.seat;
+        snap(a.street.toUpperCase(), p.pos + ' raises to', 'action').amount = p.bet;
+        break;
+      }
+      case 'allin': {
+        if (!p) break;
+        /* "All-in n": n is the street total if it beats the bet, else chips added */
+        let target = a.amount;
+        if (target <= p.bet + 1e-9) target = p.bet + a.amount;
+        commit(p, target - p.bet);
+        p.label = 'ALL-IN'; state.acting = p.seat;
+        const raised = p.bet > maxBet() - 1e-9;
+        snap(a.street.toUpperCase(), p.pos + (raised ? ' raises to' : ' calls'), 'action').amount = p.bet;
+        break;
+      }
+      case 'show':
+        if (!p) break;
+        p.cards = a.cards; p.revealed = true; state.acting = p.seat;
+        snap('SHOWDOWN', p.pos + ' shows' + (a.desc ? ' ' + a.desc : ''), 'show');
+        break;
+      case 'muck':
+        if (!p) break;
+        p.label = 'MUCK';
+        snap(state.street.toUpperCase(), p.pos + ' mucks', 'action');
+        break;
+      case 'uncalled': {
+        if (!p) break;
+        const amt = a.amount;
+        if (p.bet >= amt - 1e-4) p.bet -= amt; else state.pot -= amt;
+        p.stack += amt; p.invested -= amt;
+        if (p.stack > 0) p.allIn = false;
+        state.acting = null;
+        snap(state.street.toUpperCase(), 'Uncalled bet returned', 'return').amount = amt;
+        break;
+      }
+      case 'collect': {
+        if (!p) break;
+        collectBets();
+        const amt = Math.min(a.amount, state.pot);
+        state.pot -= amt; p.stack += amt; p.winner = true; p.won += amt; p.label = 'WINS';
+        state.street = 'end'; state.acting = null;
+        snap('RESULT', p.pos + ' wins', 'result').amount = amt;
+        break;
+      }
+    }
+  }
+  if (frames.length && frames[frames.length - 1].kind !== 'result') {
+    collectBets(); state.street = 'end'; snap('RESULT', '', 'result');
+  }
+  return frames;
+}
+
+function summarise(hand, frames) {
+  const bb = hand.bb || 1;
+  const final = frames.length ? frames[frames.length - 1] : null;
+  let eff = 0;
+  if (final) {
+    const c = final.players.slice().sort((a, b) => b.invested - a.invested).filter(p => p.invested > 0).slice(0, 2);
+    if (c.length === 2) eff = Math.min(c[0].startStack, c[1].startStack);
+    else if (c.length === 1) eff = c[0].startStack;
+  }
+  if (!eff) eff = Math.min(...hand.players.map(p => p.startStack));
+  let finalPot = hand.totalPot;
+  if (!finalPot && final) finalPot = final.players.reduce((s, p) => s + p.invested, 0);
+  return {
+    dealt: hand.players.length, effective: eff, effectiveBB: eff / bb,
+    finalPot, finalPotBB: finalPot / bb,
+    wentToShowdown: frames.some(f => f.kind === 'show')
+  };
+}
+
+/* ---------- stake ladder ---------- */
+const STAKE_LADDER = [
+  { bb: 0.02, name: 'NL2' }, { bb: 0.05, name: 'NL5' }, { bb: 0.10, name: 'NL10' },
+  { bb: 0.25, name: 'NL25' }, { bb: 0.50, name: 'NL50' }, { bb: 1.00, name: 'NL100' },
+  { bb: 2.00, name: 'NL200' }, { bb: 5.00, name: 'NL500' }, { bb: 10.0, name: 'NL1K' },
+  { bb: 20.0, name: 'NL2K' }, { bb: 50.0, name: 'NL5K' }, { bb: 100, name: 'NL10K' }
+];
+function nearestRung(bbSize) {
+  let best = 0, bd = Infinity;
+  for (let i = 0; i < STAKE_LADDER.length; i++) {
+    const d = Math.abs(Math.log(STAKE_LADDER[i].bb) - Math.log(bbSize));
+    if (d < bd) { bd = d; best = i; }
+  }
+  return best;
+}
+function fmtBB(x) {
+  if (!isFinite(x)) return '—';
+  const a = Math.abs(x);
+  return (a >= 100 ? x.toFixed(0) : x.toFixed(1)).replace(/\.0$/, '');
+}
+function fmtMoney(v, cur, bbSize) {
+  if (!isFinite(v)) return '—';
+  const dec = ((bbSize && bbSize < 2) || v % 1 !== 0) ? 2 : 0;
+  return (cur || '') + v.toFixed(dec).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+function fmtChips(v) { return Math.round(v).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+
+/* ============================================================================
+   SAMPLE HANDS — six pots spanning NL2 to NL2000 plus a tournament.
+   The tell is always in the play, never in the numbers.
+   ============================================================================ */
+const DEMO_B64="UG9rZXJTdGFycyBIYW5kICMyMzAwMTEyMjMzNDQ6ICBIb2xkJ2VtIE5vIExpbWl0ICgkMC4wMS8kMC4wMiBVU0QpIC0gMjAyNC8wNS8wMiAyMToxMTowNCBFVApUYWJsZSAnQ3liZWxlJyA2LW1heCBTZWF0ICMzIGlzIHRoZSBidXR0b24KU2VhdCAxOiBMaW1wS2luZyAoJDEuODYgaW4gY2hpcHMpClNlYXQgMjogSGVybyAoJDIuMDAgaW4gY2hpcHMpClNlYXQgMzogQ2hhaXJTbmlmZmVyICgkMy40MiBpbiBjaGlwcykKU2VhdCA0OiBmaXNoeV9tY2Zpc2ggKCQwLjk4IGluIGNoaXBzKQpTZWF0IDU6IE5vRm9sZEVtICgkMi4xMSBpbiBjaGlwcykKU2VhdCA2OiBSYWtlYmFja19Sb24gKCQxLjQ0IGluIGNoaXBzKQpmaXNoeV9tY2Zpc2g6IHBvc3RzIHNtYWxsIGJsaW5kICQwLjAxCk5vRm9sZEVtOiBwb3N0cyBiaWcgYmxpbmQgJDAuMDIKKioqIEhPTEUgQ0FSRFMgKioqCkRlYWx0IHRvIEhlcm8gW0FoIEpkXQpSYWtlYmFja19Sb246IGNhbGxzICQwLjAyCkxpbXBLaW5nOiBjYWxscyAkMC4wMgpIZXJvOiByYWlzZXMgJDAuMDggdG8gJDAuMTAKQ2hhaXJTbmlmZmVyOiBjYWxscyAkMC4xMApmaXNoeV9tY2Zpc2g6IGNhbGxzICQwLjA5Ck5vRm9sZEVtOiBjYWxscyAkMC4wOApSYWtlYmFja19Sb246IGNhbGxzICQwLjA4CkxpbXBLaW5nOiBmb2xkcwoqKiogRkxPUCAqKiogW0FjIDloIDRzXQpmaXNoeV9tY2Zpc2g6IGNoZWNrcwpOb0ZvbGRFbTogY2hlY2tzClJha2ViYWNrX1JvbjogY2hlY2tzCkhlcm86IGJldHMgJDAuMjUKQ2hhaXJTbmlmZmVyOiBjYWxscyAkMC4yNQpmaXNoeV9tY2Zpc2g6IGNhbGxzICQwLjI1Ck5vRm9sZEVtOiBmb2xkcwpSYWtlYmFja19Sb246IGZvbGRzCioqKiBUVVJOICoqKiBbQWMgOWggNHNdIFsyY10KZmlzaHlfbWNmaXNoOiBjaGVja3MKSGVybzogYmV0cyAkMC43MApDaGFpclNuaWZmZXI6IGZvbGRzCmZpc2h5X21jZmlzaDogY2FsbHMgJDAuNjMgYW5kIGlzIGFsbC1pbgpVbmNhbGxlZCBiZXQgKCQwLjA3KSByZXR1cm5lZCB0byBIZXJvCioqKiBSSVZFUiAqKiogW0FjIDloIDRzIDJjXSBbS3NdCioqKiBTSE9XIERPV04gKioqCmZpc2h5X21jZmlzaDogc2hvd3MgWzljIDlkXSAodGhyZWUgb2YgYSBraW5kLCBOaW5lcykKSGVybzogc2hvd3MgW0FoIEpkXSAoYSBwYWlyIG9mIEFjZXMpCmZpc2h5X21jZmlzaCBjb2xsZWN0ZWQgJDIuNDEgZnJvbSBwb3QKKioqIFNVTU1BUlkgKioqClRvdGFsIHBvdCAkMi41MyB8IFJha2UgJDAuMTIKQm9hcmQgW0FjIDloIDRzIDJjIEtzXQoKUG9rZXJTdGFycyBIYW5kICMyNDQ0NTU2Njc3ODg6ICBIb2xkJ2VtIE5vIExpbWl0ICgkMC4xMC8kMC4yNSBVU0QpIC0gMjAyNC8wNS8wNiAxODozMzo0MSBFVApUYWJsZSAnQmVsbG9uYScgNi1tYXggU2VhdCAjMiBpcyB0aGUgYnV0dG9uClNlYXQgMTogU3Bld1RhbmdfQ2xhbiAoJDI1LjAwIGluIGNoaXBzKQpTZWF0IDI6IEhlcm8gKCQzMS40MCBpbiBjaGlwcykKU2VhdCAzOiBUaWx0TW9uc3RlciAoJDE4Ljc1IGluIGNoaXBzKQpTZWF0IDQ6IFZhbHVlVG93biAoJDI1LjAwIGluIGNoaXBzKQpTZWF0IDU6IENoZWNrUmFpc2VfQ2hhZCAoJDQyLjEwIGluIGNoaXBzKQpTZWF0IDY6IFNuYXBDYWxsX1N1ZSAoJDI1LjAwIGluIGNoaXBzKQpUaWx0TW9uc3RlcjogcG9zdHMgc21hbGwgYmxpbmQgJDAuMTAKVmFsdWVUb3duOiBwb3N0cyBiaWcgYmxpbmQgJDAuMjUKKioqIEhPTEUgQ0FSRFMgKioqCkRlYWx0IHRvIEhlcm8gWzdoIDdzXQpDaGVja1JhaXNlX0NoYWQ6IGZvbGRzClNuYXBDYWxsX1N1ZTogY2FsbHMgJDAuMjUKU3Bld1RhbmdfQ2xhbjogZm9sZHMKSGVybzogcmFpc2VzICQxLjAwIHRvICQxLjI1ClRpbHRNb25zdGVyOiBmb2xkcwpWYWx1ZVRvd246IGNhbGxzICQxLjAwClNuYXBDYWxsX1N1ZTogY2FsbHMgJDEuMDAKKioqIEZMT1AgKioqIFs3ZCBLYyAyc10KVmFsdWVUb3duOiBjaGVja3MKU25hcENhbGxfU3VlOiBiZXRzICQyLjUwCkhlcm86IGNhbGxzICQyLjUwClZhbHVlVG93bjogZm9sZHMKKioqIFRVUk4gKioqIFs3ZCBLYyAyc10gW0toXQpTbmFwQ2FsbF9TdWU6IGJldHMgJDYuMDAKSGVybzogcmFpc2VzICQxNS4yNSB0byAkMjEuMjUKU25hcENhbGxfU3VlOiBjYWxscyAkMTUuMjUgYW5kIGlzIGFsbC1pbgoqKiogUklWRVIgKioqIFs3ZCBLYyAycyBLaF0gWzNjXQoqKiogU0hPVyBET1dOICoqKgpIZXJvOiBzaG93cyBbN2ggN3NdIChhIGZ1bGwgaG91c2UsIFNldmVucyBmdWxsIG9mIEtpbmdzKQpTbmFwQ2FsbF9TdWU6IHNob3dzIFtLZCBRaF0gKHRocmVlIG9mIGEga2luZCwgS2luZ3MpCkhlcm8gY29sbGVjdGVkICQ0OS4zMCBmcm9tIHBvdAoqKiogU1VNTUFSWSAqKioKVG90YWwgcG90ICQ1MS4zNSB8IFJha2UgJDIuMDUKQm9hcmQgWzdkIEtjIDJzIEtoIDNjXQoKUG9rZXJTdGFycyBIYW5kICMyNDEyMzQ1Njc4OTA6ICBIb2xkJ2VtIE5vIExpbWl0ICgkMC41MC8kMS4wMCBVU0QpIC0gMjAyNC8wMS8xNSAyMDozMDowMCBFVApUYWJsZSAnQW5kcm9tZWRhJyA2LW1heCBTZWF0ICMxIGlzIHRoZSBidXR0b24KU2VhdCAxOiBTbG93cm9sbF9TYW0gKCQxMDAuMDAgaW4gY2hpcHMpClNlYXQgMjogQ2hpcHppbGxhICgkMTUwLjUwIGluIGNoaXBzKQpTZWF0IDM6IEhlcm8gKCQ5OC4yNSBpbiBjaGlwcykKU2VhdCA0OiBSaXZlclJhdDg4ICgkMjAwLjAwIGluIGNoaXBzKQpTZWF0IDU6IEZvbGRFcXVpdHkgKCQ3NS4wMCBpbiBjaGlwcykKU2VhdCA2OiBOaXRCb3kgKCQxMjAuMDAgaW4gY2hpcHMpCkNoaXB6aWxsYTogcG9zdHMgc21hbGwgYmxpbmQgJDAuNTAKSGVybzogcG9zdHMgYmlnIGJsaW5kICQxLjAwCioqKiBIT0xFIENBUkRTICoqKgpEZWFsdCB0byBIZXJvIFtBcyBLaF0KUml2ZXJSYXQ4ODogZm9sZHMKRm9sZEVxdWl0eTogcmFpc2VzICQyLjAwIHRvICQzLjAwCk5pdEJveTogZm9sZHMKU2xvd3JvbGxfU2FtOiBmb2xkcwpDaGlwemlsbGE6IGZvbGRzCkhlcm86IGNhbGxzICQyLjAwCioqKiBGTE9QICoqKiBbQWggN2MgMmRdCkhlcm86IGNoZWNrcwpGb2xkRXF1aXR5OiBiZXRzICQ0LjAwCkhlcm86IGNhbGxzICQ0LjAwCioqKiBUVVJOICoqKiBbQWggN2MgMmRdIFtLZF0KSGVybzogY2hlY2tzCkZvbGRFcXVpdHk6IGJldHMgJDEyLjAwCkhlcm86IHJhaXNlcyAkMjAuMDAgdG8gJDMyLjAwCkZvbGRFcXVpdHk6IGNhbGxzICQyMC4wMAoqKiogUklWRVIgKioqIFtBaCA3YyAyZCBLZF0gWzNzXQpIZXJvOiBiZXRzICQ0MC4wMApGb2xkRXF1aXR5OiBjYWxscyAkMzYuMDAgYW5kIGlzIGFsbC1pbgpVbmNhbGxlZCBiZXQgKCQ0LjAwKSByZXR1cm5lZCB0byBIZXJvCioqKiBTSE9XIERPV04gKioqCkhlcm86IHNob3dzIFtBcyBLaF0gKHR3byBwYWlyLCBBY2VzIGFuZCBLaW5ncykKRm9sZEVxdWl0eTogc2hvd3MgW0FjIFFzXSAoYSBwYWlyIG9mIEFjZXMpCkhlcm8gY29sbGVjdGVkICQxNDUuNTAgZnJvbSBwb3QKKioqIFNVTU1BUlkgKioqClRvdGFsIHBvdCAkMTUwLjUwIHwgUmFrZSAkNS4wMApCb2FyZCBbQWggN2MgMmQgS2QgM3NdCgpQb2tlclN0YXJzIEhhbmQgIzI0ODgwMDExMjIzMzogIEhvbGQnZW0gTm8gTGltaXQgKCQyLjUwLyQ1LjAwIFVTRCkgLSAyMDI0LzA1LzA5IDIzOjQ3OjEyIEVUClRhYmxlICdBcmlhZG5lJyA2LW1heCBTZWF0ICM1IGlzIHRoZSBidXR0b24KU2VhdCAxOiBTb2x2ZXJTbGF2ZSAoJDUwMC4wMCBpbiBjaGlwcykKU2VhdCAyOiBHVE9fR3JlbWxpbiAoJDcxMi41MCBpbiBjaGlwcykKU2VhdCAzOiBIZXJvICgkNTAwLjAwIGluIGNoaXBzKQpTZWF0IDQ6IFBvdENvbnRyb2wgKCQ2NDMuMjAgaW4gY2hpcHMpClNlYXQgNTogTm9zZWJsZWVkX05pY2sgKCQxMjUwLjAwIGluIGNoaXBzKQpTZWF0IDY6IE1lcmdlTWFzdGVyICgkNTAwLjAwIGluIGNoaXBzKQpNZXJnZU1hc3RlcjogcG9zdHMgc21hbGwgYmxpbmQgJDIuNTAKU29sdmVyU2xhdmU6IHBvc3RzIGJpZyBibGluZCAkNS4wMAoqKiogSE9MRSBDQVJEUyAqKioKRGVhbHQgdG8gSGVybyBbS2MgS2RdCkdUT19HcmVtbGluOiBmb2xkcwpIZXJvOiByYWlzZXMgJDYuMDAgdG8gJDExLjAwClBvdENvbnRyb2w6IGZvbGRzCk5vc2VibGVlZF9OaWNrOiByYWlzZXMgJDI3LjAwIHRvICQzOC4wMApNZXJnZU1hc3RlcjogZm9sZHMKU29sdmVyU2xhdmU6IGZvbGRzCkhlcm86IHJhaXNlcyAkODcuMDAgdG8gJDEyNS4wMApOb3NlYmxlZWRfTmljazogY2FsbHMgJDg3LjAwCioqKiBGTE9QICoqKiBbOGQgNmMgM2hdCkhlcm86IGJldHMgJDYyLjUwCk5vc2VibGVlZF9OaWNrOiBjYWxscyAkNjIuNTAKKioqIFRVUk4gKioqIFs4ZCA2YyAzaF0gW1FzXQpIZXJvOiBiZXRzICQzMTIuNTAgYW5kIGlzIGFsbC1pbgpOb3NlYmxlZWRfTmljazogY2FsbHMgJDMxMi41MAoqKiogUklWRVIgKioqIFs4ZCA2YyAzaCBRc10gWzdkXQoqKiogU0hPVyBET1dOICoqKgpIZXJvOiBzaG93cyBbS2MgS2RdIChhIHBhaXIgb2YgS2luZ3MpCk5vc2VibGVlZF9OaWNrOiBzaG93cyBbQWQgQWhdIChhIHBhaXIgb2YgQWNlcykKTm9zZWJsZWVkX05pY2sgY29sbGVjdGVkICQxMDAyLjUwIGZyb20gcG90CioqKiBTVU1NQVJZICoqKgpUb3RhbCBwb3QgJDEwMDcuNTAgfCBSYWtlICQ1LjAwCkJvYXJkIFs4ZCA2YyAzaCBRcyA3ZF0KClBva2VyU3RhcnMgSGFuZCAjMjQ5OTAwMTExMjIyOiAgSG9sZCdlbSBObyBMaW1pdCAoJDEwLjAwLyQyMC4wMCBVU0QpIC0gMjAyNC8wNS8xMSAwMzoyNjoxOCBFVApUYWJsZSAnUGVyc2V1cycgMi1tYXggU2VhdCAjMiBpcyB0aGUgYnV0dG9uClNlYXQgMTogVmlsbGFpbl9IVSAoJDQwMDAuMDAgaW4gY2hpcHMpClNlYXQgMjogSGVybyAoJDQwMDAuMDAgaW4gY2hpcHMpCkhlcm86IHBvc3RzIHNtYWxsIGJsaW5kICQxMC4wMApWaWxsYWluX0hVOiBwb3N0cyBiaWcgYmxpbmQgJDIwLjAwCioqKiBIT0xFIENBUkRTICoqKgpEZWFsdCB0byBIZXJvIFtKYyBUc10KSGVybzogcmFpc2VzICQ0MC4wMCB0byAkNjAuMDAKVmlsbGFpbl9IVTogY2FsbHMgJDQwLjAwCioqKiBGTE9QICoqKiBbOWggOGQgMnNdClZpbGxhaW5fSFU6IGNoZWNrcwpIZXJvOiBiZXRzICQ3Mi4wMApWaWxsYWluX0hVOiByYWlzZXMgJDIwOC4wMCB0byAkMjgwLjAwCkhlcm86IGNhbGxzICQyMDguMDAKKioqIFRVUk4gKioqIFs5aCA4ZCAyc10gW1FjXQpWaWxsYWluX0hVOiBiZXRzICQ1NjAuMDAKSGVybzogY2FsbHMgJDU2MC4wMAoqKiogUklWRVIgKioqIFs5aCA4ZCAycyBRY10gWzdkXQpWaWxsYWluX0hVOiBiZXRzICQzMTAwLjAwIGFuZCBpcyBhbGwtaW4KSGVybzogY2FsbHMgJDMxMDAuMDAgYW5kIGlzIGFsbC1pbgoqKiogU0hPVyBET1dOICoqKgpWaWxsYWluX0hVOiBzaG93cyBbQWggOWNdIChhIHBhaXIgb2YgTmluZXMpCkhlcm86IHNob3dzIFtKYyBUc10gKGEgc3RyYWlnaHQsIEVpZ2h0IHRvIFF1ZWVuKQpIZXJvIGNvbGxlY3RlZCAkNzk5MC4wMCBmcm9tIHBvdAoqKiogU1VNTUFSWSAqKioKVG90YWwgcG90ICQ4MDAwLjAwIHwgUmFrZSAkMTAuMDAKQm9hcmQgWzloIDhkIDJzIFFjIDdkXQoKUG9rZXJTdGFycyBIYW5kICMyNDU2Nzg5MDEyMzQ6IFRvdXJuYW1lbnQgIzM0NTY3ODkwMTIsICQxMCskMSBVU0QgSG9sZCdlbSBObyBMaW1pdCAtIExldmVsIFhJICg0MDAvODAwKSAtIDIwMjQvMDIvMjAgMTk6MDU6MzMgRVQKVGFibGUgJzM0NTY3ODkwMTIgMTQnIDktbWF4IFNlYXQgIzQgaXMgdGhlIGJ1dHRvbgpTZWF0IDE6IERlZXBTdGFja0RhbiAoMTg0NTAgaW4gY2hpcHMpClNlYXQgMjogQnViYmxlQm95ICg5MjAwIGluIGNoaXBzKQpTZWF0IDM6IEhlcm8gKDI0NjAwIGluIGNoaXBzKQpTZWF0IDQ6IFNob3ZlTW9ua2V5ICgzMTAwMCBpbiBjaGlwcykKU2VhdCA1OiBUaWdodElzUmlnaHQgKDc4MDAgaW4gY2hpcHMpClNlYXQgNjogQ2FsbGluZ1N0YXRpb24gKDE0MzAwIGluIGNoaXBzKQpTZWF0IDc6IEtvbG9uZWwgKDIyMTAwIGluIGNoaXBzKQpTZWF0IDg6IEx1Y2tCb3g5OSAoNTYwMCBpbiBjaGlwcykKU2VhdCA5OiBHcmluZEdvZCAoMTY3NTAgaW4gY2hpcHMpCkRlZXBTdGFja0RhbjogcG9zdHMgdGhlIGFudGUgMTAwCkJ1YmJsZUJveTogcG9zdHMgdGhlIGFudGUgMTAwCkhlcm86IHBvc3RzIHRoZSBhbnRlIDEwMApTaG92ZU1vbmtleTogcG9zdHMgdGhlIGFudGUgMTAwClRpZ2h0SXNSaWdodDogcG9zdHMgdGhlIGFudGUgMTAwCkNhbGxpbmdTdGF0aW9uOiBwb3N0cyB0aGUgYW50ZSAxMDAKS29sb25lbDogcG9zdHMgdGhlIGFudGUgMTAwCkx1Y2tCb3g5OTogcG9zdHMgdGhlIGFudGUgMTAwCkdyaW5kR29kOiBwb3N0cyB0aGUgYW50ZSAxMDAKVGlnaHRJc1JpZ2h0OiBwb3N0cyBzbWFsbCBibGluZCA0MDAKQ2FsbGluZ1N0YXRpb246IHBvc3RzIGJpZyBibGluZCA4MDAKKioqIEhPTEUgQ0FSRFMgKioqCkRlYWx0IHRvIEhlcm8gW0tzIEtkXQpLb2xvbmVsOiBmb2xkcwpMdWNrQm94OTk6IHJhaXNlcyA0NzAwIHRvIDU1MDAgYW5kIGlzIGFsbC1pbgpHcmluZEdvZDogZm9sZHMKRGVlcFN0YWNrRGFuOiBmb2xkcwpCdWJibGVCb3k6IGZvbGRzCkhlcm86IHJhaXNlcyAxOTAwMCB0byAyNDUwMCBhbmQgaXMgYWxsLWluClNob3ZlTW9ua2V5OiBmb2xkcwpUaWdodElzUmlnaHQ6IGZvbGRzCkNhbGxpbmdTdGF0aW9uOiBmb2xkcwpVbmNhbGxlZCBiZXQgKDE5MDAwKSByZXR1cm5lZCB0byBIZXJvCioqKiBGTE9QICoqKiBbN2ggMmMgOWRdCioqKiBUVVJOICoqKiBbN2ggMmMgOWRdIFtBaF0KKioqIFJJVkVSICoqKiBbN2ggMmMgOWQgQWhdIFtLY10KKioqIFNIT1cgRE9XTiAqKioKSGVybzogc2hvd3MgW0tzIEtkXSAodGhyZWUgb2YgYSBraW5kLCBLaW5ncykKTHVja0JveDk5OiBzaG93cyBbQWQgUWhdIChhIHBhaXIgb2YgQWNlcykKSGVybyBjb2xsZWN0ZWQgMTMxMDAgZnJvbSBwb3QKKioqIFNVTU1BUlkgKioqClRvdGFsIHBvdCAxMzEwMCB8IFJha2UgMApCb2FyZCBbN2ggMmMgOWQgQWggS2Nd";
+function demoText(){return unb64(DEMO_B64);}
+
+/* ============================================================================
+   APP
+   ============================================================================ */
+const $=s=>document.querySelector(s);
+const SUIT_GLYPH={s:'♠',h:'♥',d:'♦',c:'♣'};
+
+/* Tournaments are guessed by buy-in bracket rather than by blind level. */
+const BUYIN_LADDER=[
+  {v:1,name:'$1–3'},{v:5,name:'$5–11'},{v:22,name:'$22–33'},{v:55,name:'$55–109'},
+  {v:215,name:'$215–320'},{v:530,name:'$530–1K'},{v:2000,name:'$2K+'}
+];
+
+const App={
+  hands:[],          // {hand, frames, summary, guess:{idx,verdict}|null, revealed:bool}
+  i:0,               // active hand
+  f:0,               // active frame
+  playing:false,
+  timer:null,
+  speed:1,
+  fourColour:true,
+  anon:true            // names off by default — a known reg is a stakes tell
+};
+
+/* ---------- unit-aware formatting ---------- */
+function cur(){return App.hands[App.i];}
+function isRevealed(){const e=cur();return !!(e&&e.revealed);}
+function amt(v){
+  const e=cur(); if(!e) return '0';
+  if(!e.revealed) return fmtBB(v/(e.hand.bb||1));
+  if(e.hand.isTournament) return fmtChips(v);
+  return fmtMoney(v,e.hand.currency,e.hand.bb);
+}
+function unitLabel(){
+  const e=cur(); if(!e) return 'bb';
+  if(!e.revealed) return 'bb';
+  return e.hand.isTournament?'chips':'';
+}
+/* numeric value behind a rendered figure, for the re-denomination roll */
+function amtNum(v){
+  const e=cur(); if(!e) return 0;
+  return e.revealed?v:v/(e.hand.bb||1);
+}
+function displayName(p){
+  const e=cur();
+  if(!App.anon) return p.name;
+  /* the badge above already carries the position — repeating it here would
+     waste the line, so fall back to the seat the hand history gave them */
+  if(e && p.name===e.hand.heroName) return 'You';
+  return 'Seat '+p.seat;
+}
+
+/* ---------- card markup ---------- */
+function cardHTML(c,extra){
+  const cls='card'+(App.fourColour?'':' mono-deck')+(extra?' '+extra:'');
+  return '<div class="'+cls+'" data-suit="'+c.s+'"><span class="r">'+c.r+'</span><span class="p">'+SUIT_GLYPH[c.s]+'</span></div>';
+}
+function backHTML(extra){
+  return '<div class="card back'+(extra?' '+extra:'')+'"></div>';
+}
+function miniHTML(c){
+  return '<span class="mini" data-suit="'+c.s+'">'+c.r+SUIT_GLYPH[c.s]+'</span>';
+}
+
+/* ---------- seat geometry ----------
+   The ring sits just outside the table so the plates straddle the rail. Both
+   are derived from the same --tx/--ty the CSS uses, so a breakpoint that
+   reshapes the table moves the seats with it. Index 0 is the bottom seat and
+   the ring runs bottom -> left -> top -> right: the order the action moves in. */
+function ringRadii(){
+  const cs=getComputedStyle($('#feltWrap'));
+  const tx=parseFloat(cs.getPropertyValue('--tx'))||11;
+  const ty=parseFloat(cs.getPropertyValue('--ty'))||15;
+  return {rx:(50-tx)+2, ry:(50-ty)+1.5};
+}
+function seatPositions(n,r){
+  const pts=[];
+  for(let i=0;i<n;i++){
+    const th=(90+i*(360/n))*Math.PI/180;
+    pts.push({x:50+r.rx*Math.cos(th),y:50+r.ry*Math.sin(th),th});
+  }
+  return pts;
+}
+
+/* ---------- render ---------- */
+function render(){
+  const e=cur();
+  if(!e){renderEmpty();return;}
+  const fr=e.frames[App.f]||e.frames[0];
+  const bbv=e.hand.bb||1;
+
+  /* ring order: hero at the bottom, then round the table in seat order */
+  const ring=e.hand.players.map(p=>p.seat).sort((a,b)=>a-b);
+  let hi=ring.indexOf((e.hand.players.find(p=>p.name===e.hand.heroName)||{}).seat);
+  if(hi<0) hi=ring.indexOf(e.hand.buttonSeat);
+  if(hi<0) hi=0;
+  const order=ring.slice(hi).concat(ring.slice(0,hi));
+  const radii=ringRadii();
+  const pts=seatPositions(order.length,radii);
+  /* A full-size plate nine times over does not fit round one ring: shrink the
+     whole seat footprint as the table fills up. */
+  const n=order.length;
+  $('#feltWrap').style.setProperty('--sc', n<=6?'1':n<=8?'0.9':'0.8');
+
+  /* seats + pucks */
+  let html='', pucks='';
+  order.forEach((seat,idx)=>{
+    const p=fr.players.find(x=>x.seat===seat);
+    if(!p) return;
+    const pt=pts[idx];
+    const isHero=p.name===e.hand.heroName;
+    /* seats on the top half hang their cards downward, into the table */
+    const cls=['seat',pt.y<50?'inward-down':'',isHero?'hero':'',p.folded?'folded':'',
+      seat===e.hand.buttonSeat?'is-button':'',
+      (fr.acting===seat&&!p.folded)?'acting':'',
+      (p.winner&&fr.kind==='result')?'winner':''].filter(Boolean).join(' ');
+
+    let cards='';
+    if(p.cards.length){
+      cards=p.revealed
+        ? p.cards.map(c=>cardHTML(c,'sm'+(p.folded?' dim':''))).join('')
+        : (p.folded?'':p.cards.map(()=>backHTML('sm')).join(''));
+    } else if(!p.folded){
+      cards=backHTML('sm')+backHTML('sm');
+    }
+
+    const actCls=p.label==='RAISE'?'act-raise':p.label==='BET'?'act-bet':
+                 p.label==='ALL-IN'?'act-allin':p.label==='WINS'?'act-wins':'';
+    /* Chips sit on the line between the seat and the pot. Hanging them straight
+       up or down instead made two seats either side of the midline aim their
+       chips into the same gap, and they collided. */
+    if(p.bet>0){
+      const blind=(p.label==='SB'||p.label==='BB'||p.label==='SB+BB'||p.label==='STR');
+      const F=0.53;
+      const bx=50+(pt.x-50)*F, by=50+(pt.y-50)*F;
+      pucks+='<div class="puck'+(blind?' blind':'')+'" style="left:'+bx.toFixed(2)+'%;top:'+by.toFixed(2)+'%">'
+        +'<i></i><span data-num="bet-'+seat+'">'+amt(p.bet)+'</span></div>';
+    }
+
+    html+='<div class="'+cls+'" style="left:'+pt.x.toFixed(2)+'%;top:'+pt.y.toFixed(2)+'%">'
+      +'<div class="seat-cards">'+cards+'</div>'
+      +'<div class="seat-box">'
+      +'<div class="seat-top"><span class="seat-pos">'+p.pos+'</span>'
+      +'<span class="seat-name">'+esc(displayName(p))+'</span></div>'
+      +'<div class="seat-stack"><span data-num="stack-'+seat+'">'+amt(p.stack)+'</span>'
+      +(unitLabel()?'<span class="u">'+unitLabel()+'</span>':'')+'</div>'
+      +'<div class="seat-action '+actCls+'">'+(p.label||'')+'</div>'
+      +'</div></div>';
+  });
+
+  $('#seatLayer').innerHTML=html+pucks;
+
+  /* board */
+  $('#board').innerHTML=fr.board.map(c=>cardHTML(c)).join('');
+
+  /* Pot. Once it has been pushed, what is left in the middle is the rake —
+     showing that as "POT" is just wrong, so the result frame reports the pot
+     that was actually contested, which is what the previous frame showed. */
+  const potTotal=fr.kind==='result'
+    ? e.summary.finalPot
+    : fr.pot+fr.players.reduce((s,p)=>s+p.bet,0);
+  $('#potVal').textContent=amt(potTotal);
+  $('#potUnit').textContent=unitLabel();
+  $('#potUnit').hidden=!unitLabel();
+
+  /* street badge */
+  const badge=fr.kind==='result'?'Result':fr.label.charAt(0)+fr.label.slice(1).toLowerCase();
+  $('#streetBadge').textContent=badge+(fr.detail?' · '+fr.detail:'');
+  $('#feltWrap').classList.toggle('won',fr.kind==='result');
+
+  renderTransport();
+  renderLog();
+  renderMeta();
+  renderStakes();
+  renderTabs();
+}
+
+function renderEmpty(){
+  $('#seatLayer').innerHTML='<div class="empty">No hands loaded &mdash; paste some hand histories</div>';
+  $('#board').innerHTML=''; $('#potVal').textContent='0';
+  $('#log').innerHTML=''; $('#meta').innerHTML='';
+}
+
+function renderTransport(){
+  const e=cur(); if(!e) return;
+  const n=e.frames.length;
+  $('#counter').textContent=(App.f+1)+' / '+n;
+  $('#btnStart').disabled=$('#btnPrev').disabled=(App.f===0);
+  $('#btnNext').disabled=$('#btnEnd').disabled=(App.f>=n-1);
+  let s='';
+  for(let i=0;i<n;i++){
+    const k=e.frames[i].kind;
+    const cls=['tick',i<App.f?'done':'',i===App.f?'now':'',
+      (k==='street'||k==='result')&&i!==App.f?'street':''].filter(Boolean).join(' ');
+    s+='<button class="'+cls+'" data-f="'+i+'" aria-label="Action '+(i+1)+'"></button>';
+  }
+  $('#scrub').innerHTML=s;
+}
+
+function renderLog(){
+  const e=cur(); if(!e) return;
+  const out=[];
+  let street=null;
+  e.frames.forEach((fr,i)=>{
+    if(fr.kind==='deal'||fr.kind==='street'){
+      street=fr.label;
+      const shown=fr.board.slice(street==='FLOP'?0:Math.max(0,fr.board.length-1));
+      const cards=(street==='FLOP'||street==='TURN'||street==='RIVER')
+        ? '<span class="cards">'+fr.board.map(miniHTML).join('')+'</span>':'';
+      const runTag=fr.run>1?' · Run '+fr.run:'';
+      out.push('<div class="log-street">'+street+runTag+cards+'</div>');
+      if(fr.kind==='deal') return;
+      return;
+    }
+    const p=fr.players.find(x=>x.seat===fr.acting);
+    const isHero=p&&p.name===e.hand.heroName;
+    const agg=/raises|bets/.test(fr.detail);
+    const cls=['log-row',isHero?'is-hero':'',agg?'aggressive':'',
+      /folds/.test(fr.detail)?'fold':'',fr.kind==='result'?'result':''].filter(Boolean).join(' ');
+    const pos=fr.kind==='return'?'':(p?p.pos:'');
+    const label=fr.detail||fr.label;
+    const showAmt=fr.amount!=null&&fr.amount>0;
+    out.push('<button class="'+cls+'" data-f="'+i+'"'+(i===App.f?' aria-current="true"':'')+'>'
+      +'<span class="pos">'+pos+'</span>'
+      +'<span class="act">'+esc(stripPos(label,pos))+'</span>'
+      +(showAmt?'<span class="amt">'+amt(fr.amount)+(unitLabel()?'<span class="u">'+unitLabel()+'</span>':'')+'</span>':'')
+      +'</button>');
+  });
+  const log=$('#log');
+  log.innerHTML=out.join('');
+  log.classList.toggle('mono-deck',!App.fourColour);
+  $('#logUnit').textContent=isRevealed()
+    ? (e.hand.isTournament?'in chips':'in '+(e.hand.currency||'$'))
+    : 'in big blinds';
+  const active=log.querySelector('[aria-current="true"]');
+  if(active&&active.scrollIntoView) active.scrollIntoView({block:'nearest'});
+}
+function stripPos(label,pos){
+  if(pos&&label.startsWith(pos+' ')) return label.slice(pos.length+1);
+  return label;
+}
+
+function renderMeta(){
+  const e=cur(); if(!e) return;
+  const h=e.hand,s=e.summary;
+  const rows=[];
+  rows.push(['Game',h.limit+' '+h.gameType]);
+  rows.push(['Players',s.dealt+'-handed'+(h.maxPlayers?' · '+h.maxPlayers+'-max':'')]);
+  rows.push(['Effective',fmtBB(s.effectiveBB)+'<span class="u">bb</span>']);
+  rows.push(['Final pot',isRevealed()
+    ? amt(s.finalPot)+(unitLabel()?'<span class="u">'+unitLabel()+'</span>':'')
+    : fmtBB(s.finalPotBB)+'<span class="u">bb</span>']);
+  if(isRevealed()){
+    if(h.isTournament){
+      rows.push(['Buy-in',h.buyin||'—']);
+      rows.push(['Level',(h.level?'Level '+h.level+' · ':'')+fmtChips(h.sb)+'/'+fmtChips(h.bb)]);
+    } else {
+      rows.push(['Blinds',fmtMoney(h.sb,h.currency,h.bb)+'/'+fmtMoney(h.bb,h.currency,h.bb)]);
+      if(h.rake) rows.push(['Rake',fmtMoney(h.rake,h.currency,h.bb)]);
+    }
+    if(h.tableName) rows.push(['Table',esc(h.tableName)]);
+  } else {
+    rows.push(['Table','<span class="redacted" style="width:70px;height:12px;vertical-align:-1px"></span>']);
+  }
+  if(h.parseWarnings.length){
+    rows.push(['Note','<span style="color:var(--warn)">'+esc(h.parseWarnings.join('; '))+'</span>']);
+  }
+  $('#meta').innerHTML=rows.map(r=>
+    '<div class="meta-row"><span class="k">'+r[0]+'</span><span class="v">'+r[1]+'</span></div>').join('');
+  /* the room is fair game before the reveal — it says nothing about the stakes,
+     and knowing the pool is part of reading the hand */
+  $('#metaSite').textContent=h.site==='Unknown'?'':h.site;
+}
+
+function renderStakes(){
+  const e=cur(); if(!e) return;
+  const h=e.hand;
+  const strip=$('#stakesStrip'), val=$('#stakesVal'), vs=$('#verdictSlot');
+  strip.classList.toggle('revealed',e.revealed);
+  $('#guessBtn').hidden=e.revealed;
+  if(!e.revealed){
+    $('#stakesLabel').textContent='Stakes';
+    val.innerHTML='<span class="redacted"></span>';
+    vs.innerHTML='';
+    renderRungs();
+    return;
+  }
+  $('#stakesLabel').textContent=h.isTournament?'Buy-in':'Stakes';
+  if(h.isTournament){
+    val.innerHTML='<span data-num="stakes">'+(h.buyin||'—')+'</span>'
+      +'<span class="sub">Level '+(h.level||'?')+' · '+fmtChips(h.sb)+'/'+fmtChips(h.bb)+'</span>';
+  } else {
+    const rung=STAKE_LADDER[nearestRung(h.bb)];
+    val.innerHTML='<span data-num="stakes">'+fmtMoney(h.sb,h.currency,h.bb)+'/'+fmtMoney(h.bb,h.currency,h.bb)+'</span>'
+      +'<span class="tag">'+rung.name+'</span>'
+      +'<span class="sub">'+h.site+'</span>';
+  }
+  const g=e.guess;
+  vs.innerHTML=g?'<span class="verdict '+g.verdict+'">'+g.text+'</span>':'';
+  $('#ladder').classList.remove('open');
+}
+
+function renderRungs(){
+  const e=cur(); if(!e) return;
+  const h=e.hand;
+  const wrap=$('#rungs');
+  if(h.isTournament){
+    wrap.innerHTML=BUYIN_LADDER.map((b,i)=>
+      '<button class="rung" data-rung="'+i+'">'+b.name+'</button>').join('');
+    $('#ladderHint').textContent='Pick the buy-in bracket.';
+  } else {
+    wrap.innerHTML=STAKE_LADDER.map((r,i)=>
+      '<button class="rung" data-rung="'+i+'">'+r.name
+      +'<span class="m">'+fmtMoney(r.bb/2,'$',r.bb)+'/'+fmtMoney(r.bb,'$',r.bb)+'</span></button>').join('');
+    $('#ladderHint').textContent='Read the sizing, the stack depth and how wide they are going.';
+  }
+}
+
+function renderTabs(){
+  const tabs=$('#handTabs');
+  tabs.innerHTML=App.hands.map((e,i)=>{
+    const h=e.hand;
+    const cards=(h.holeCards[h.heroName]||[]).map(c=>c.r+SUIT_GLYPH[c.s]).join(' ');
+    const st=e.guess?(e.guess.verdict==='hit'?'hit':e.guess.verdict==='close'?'hit':'miss'):'pending';
+    const stTxt=e.guess?e.guess.short:(e.revealed?'shown':'unplayed');
+    return '<button class="hand-tab" data-hand="'+i+'"'+(i===App.i?' aria-current="true"':'')+'>'
+      +'<span class="n">Hand '+(i+1)+'</span>'
+      +'<span class="d">'+(cards||(h.players.length+'-handed'))+'</span>'
+      +'<span class="s '+st+'">'+stTxt+'</span></button>';
+  }).join('');
+  const played=App.hands.filter(e=>e.guess).length;
+  const hit=App.hands.filter(e=>e.guess&&e.guess.verdict==='hit').length;
+  $('#score').hidden=played===0;
+  $('#scoreVal').textContent=hit+'/'+played;
+}
+
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+
+/* ---------- the reveal: every figure re-denominates in place ---------- */
+function revealStakes(guessIdx){
+  const e=cur(); if(!e||e.revealed) return;
+  const h=e.hand;
+
+  if(guessIdx!=null){
+    if(h.isTournament){
+      const actual=buyinBracket(h.buyin);
+      const d=Math.abs(guessIdx-actual);
+      e.guess=d===0?{verdict:'hit',text:'Called it',short:'called it'}
+        :d===1?{verdict:'close',text:'One bracket off',short:'one off'}
+        :{verdict:'miss',text:d+' brackets off',short:d+' off'};
+    } else {
+      const actual=nearestRung(h.bb);
+      const d=Math.abs(guessIdx-actual);
+      const dir=guessIdx>actual?'too high':'too low';
+      e.guess=d===0?{verdict:'hit',text:'Called it',short:'called it'}
+        :d===1?{verdict:'close',text:'One level '+dir,short:'one off'}
+        :{verdict:'miss',text:d+' levels '+dir,short:d+' off'};
+    }
+  }
+
+  /* snapshot the on-felt figures, flip the unit, then roll each one across */
+  const before=new Map();
+  document.querySelectorAll('[data-num]').forEach(el=>{
+    const v=parseFloat(el.textContent.replace(/[^0-9.\-]/g,''));
+    if(!isNaN(v)) before.set(el.getAttribute('data-num'),v);
+  });
+
+  e.revealed=true;
+  render();
+  save();
+
+  const reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(reduce) return;
+
+  const targets=[];
+  document.querySelectorAll('[data-num]').forEach(el=>{
+    const key=el.getAttribute('data-num');
+    if(!before.has(key)) return;
+    const to=parseFloat(el.textContent.replace(/[^0-9.\-]/g,''));
+    if(isNaN(to)) return;
+    const from=before.get(key);
+    if(Math.abs(from-to)<0.005) return;
+    targets.push({el,from,to,final:el.textContent});
+  });
+  if(!targets.length) return;
+
+  const D=760, t0=performance.now();
+  const fmt=v=>h.isTournament?fmtChips(v):fmtMoney(v,h.currency,h.bb);
+  (function step(t){
+    const k=Math.min(1,(t-t0)/D);
+    const easing=1-Math.pow(1-k,3);
+    for(const g of targets){
+      g.el.textContent=k>=1?g.final:fmt(g.from+(g.to-g.from)*easing);
+    }
+    if(k<1) requestAnimationFrame(step);
+  })(t0);
+}
+function buyinBracket(buyin){
+  const v=num(buyin);
+  let best=0;
+  for(let i=0;i<BUYIN_LADDER.length;i++) if(v>=BUYIN_LADDER[i].v) best=i;
+  return best;
+}
+
+/* ---------- playback ---------- */
+function goto(i,stop){
+  const e=cur(); if(!e) return;
+  App.f=Math.max(0,Math.min(e.frames.length-1,i));
+  if(stop) pause();
+  render();
+}
+function play(){
+  const e=cur(); if(!e) return;
+  if(App.f>=e.frames.length-1) App.f=0;
+  App.playing=true; setPlayIcon();
+  tick();
+}
+function tick(){
+  clearTimeout(App.timer);
+  const e=cur(); if(!e||!App.playing) return;
+  const fr=e.frames[App.f];
+  const base=fr&&(fr.kind==='street'||fr.kind==='result')?1150:800;
+  App.timer=setTimeout(()=>{
+    if(!App.playing) return;
+    if(App.f>=e.frames.length-1){pause();return;}
+    App.f++; render(); tick();
+  },base/App.speed);
+}
+function pause(){App.playing=false;clearTimeout(App.timer);setPlayIcon();}
+function setPlayIcon(){
+  $('#playIcon').innerHTML=App.playing?'<path d="M6 4h4v16H6zM14 4h4v16h-4z"/>':'<path d="M7 4l13 8-13 8z"/>';
+  $('#btnPlay').setAttribute('aria-label',App.playing?'Pause':'Play');
+}
+
+/* ---------- loading ---------- */
+function loadText(text,quiet){
+  const parsed=parseHands(text);
+  if(!parsed.length){
+    if(!quiet) setStatus('Could not find a hand in that. It needs seat lines with stacks, and the blinds being posted.','err');
+    return false;
+  }
+  App.hands=parsed.map(h=>{
+    const frames=buildFrames(h);
+    return{hand:h,frames,summary:summarise(h,frames),guess:null,revealed:false};
+  });
+  App.i=0; App.f=0; pause();
+  if(!quiet){
+    const sites=[...new Set(parsed.map(h=>h.site).filter(s=>s&&s!=='Unknown'))];
+    const shaky=parsed.filter(h=>h.parseWarnings.length).length;
+    setStatus('Loaded '+App.hands.length+' hand'+(App.hands.length>1?'s':'')
+      +(sites.length?' · '+sites.join(', '):'')
+      +(shaky?' · '+shaky+' read only partly':''), shaky?'':'ok');
+  }
+  render();
+  return true;
+}
+function setStatus(msg,cls){
+  const el=$('#loadStatus'); el.textContent=msg; el.className='status '+(cls||'');
+}
+function selectHand(i){
+  App.i=Math.max(0,Math.min(App.hands.length-1,i));
+  App.f=0; pause(); render();
+}
+
+/* ---------- share links + session memory ---------- */
+/* UTF-8 by hand rather than via TextEncoder/TextDecoder: this sits on the boot
+   path now that the sample hands are packed, and player names and table names
+   are full of accents (Cádiz, Rosny-sous-Bois) that a byte-wise shortcut would
+   mangle. Uses the built-ins where they exist and falls back where they don't. */
+function utf8Encode(str){
+  if(typeof TextEncoder!=='undefined') return new TextEncoder().encode(str);
+  const out=[];
+  for(let i=0;i<str.length;i++){
+    const c=str.charCodeAt(i);
+    if(c<0x80) out.push(c);
+    else if(c<0x800) out.push(0xC0|(c>>6),0x80|(c&0x3F));
+    else if(c>=0xD800&&c<0xDC00){
+      const cp=0x10000+((c-0xD800)<<10)+(str.charCodeAt(++i)-0xDC00);
+      out.push(0xF0|(cp>>18),0x80|((cp>>12)&0x3F),0x80|((cp>>6)&0x3F),0x80|(cp&0x3F));
+    }
+    else out.push(0xE0|(c>>12),0x80|((c>>6)&0x3F),0x80|(c&0x3F));
+  }
+  return out;
+}
+function utf8Decode(bytes){
+  if(typeof TextDecoder!=='undefined') return new TextDecoder().decode(new Uint8Array(bytes));
+  let s='';
+  for(let i=0;i<bytes.length;){
+    const b=bytes[i++];
+    if(b<0x80) s+=String.fromCharCode(b);
+    else if(b<0xE0) s+=String.fromCharCode(((b&0x1F)<<6)|(bytes[i++]&0x3F));
+    else if(b<0xF0) s+=String.fromCharCode(((b&0x0F)<<12)|((bytes[i++]&0x3F)<<6)|(bytes[i++]&0x3F));
+    else{
+      const cp=((b&0x07)<<18)|((bytes[i++]&0x3F)<<12)|((bytes[i++]&0x3F)<<6)|(bytes[i++]&0x3F);
+      const v=cp-0x10000;
+      s+=String.fromCharCode(0xD800+(v>>10),0xDC00+(v&0x3FF));
+    }
+  }
+  return s;
+}
+function b64(str){
+  const bytes=utf8Encode(str);
+  let bin=''; for(let i=0;i<bytes.length;i++) bin+=String.fromCharCode(bytes[i]);
+  return btoa(bin).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
+function unb64(s){
+  let t=String(s).replace(/-/g,'+').replace(/_/g,'/');
+  while(t.length%4) t+='=';
+  const bin=atob(t);
+  const bytes=new Array(bin.length);
+  for(let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
+  return utf8Decode(bytes);
+}
+function currentText(){return App.hands.map(e=>e.hand.raw).join('\n\n');}
+function save(){
+  try{localStorage.setItem('gts.hands',currentText());}catch(_){}
+}
+function restore(){
+  try{
+    const t=localStorage.getItem('gts.hands');
+    if(t) return loadText(t,true);
+  }catch(_){}
+  return false;
+}
+function toast(msg){
+  const t=$('#toast'); t.textContent=msg; t.classList.add('show');
+  clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+/* ---------- wiring ---------- */
+$('#btnStart').onclick=()=>goto(0,true);
+$('#btnPrev').onclick=()=>goto(App.f-1,true);
+$('#btnNext').onclick=()=>goto(App.f+1,true);
+$('#btnEnd').onclick=()=>{const e=cur();if(e)goto(e.frames.length-1,true);};
+$('#btnPlay').onclick=()=>App.playing?pause():play();
+
+$('#scrub').onclick=ev=>{
+  const b=ev.target.closest('[data-f]'); if(b) goto(+b.dataset.f,true);
+};
+$('#log').onclick=ev=>{
+  const b=ev.target.closest('[data-f]'); if(b) goto(+b.dataset.f,true);
+};
+$('#handTabs').onclick=ev=>{
+  const b=ev.target.closest('[data-hand]'); if(b) selectHand(+b.dataset.hand);
+};
+$('#speed').onclick=ev=>{
+  const b=ev.target.closest('[data-mult]'); if(!b) return;
+  App.speed=parseFloat(b.dataset.mult);
+  [...$('#speed').children].forEach(c=>c.setAttribute('aria-pressed',String(c===b)));
+};
+
+$('#guessBtn').onclick=()=>{
+  const l=$('#ladder'); l.classList.toggle('open');
+  if(l.classList.contains('open')) l.querySelector('.rung')?.focus();
+};
+$('#rungs').onclick=ev=>{
+  const b=ev.target.closest('[data-rung]'); if(!b) return;
+  revealStakes(+b.dataset.rung);
+};
+$('#revealBtn').onclick=()=>revealStakes(null);
+
+$('#deckBtn').onclick=e=>{
+  App.fourColour=!App.fourColour;
+  e.currentTarget.setAttribute('aria-pressed',String(App.fourColour));
+  render();
+};
+$('#anonBtn').onclick=e=>{
+  App.anon=!App.anon;
+  e.currentTarget.setAttribute('aria-pressed',String(App.anon));
+  render();
+};
+$('#loadBtn').onclick=e=>{
+  const p=$('#loaderPanel'); p.hidden=!p.hidden;
+  e.currentTarget.setAttribute('aria-pressed',String(!p.hidden));
+  if(!p.hidden) $('#hhInput').focus();
+};
+$('#loaderClose').onclick=()=>{
+  $('#loaderPanel').hidden=true;
+  $('#loadBtn').setAttribute('aria-pressed','false');
+};
+$('#parseBtn').onclick=()=>{
+  const t=$('#hhInput').value.trim();
+  if(!t){setStatus('Paste at least one hand first.','err');return;}
+  if(loadText(t)){save();$('#hhInput').value='';}
+};
+$('#demoBtn').onclick=()=>{loadText(demoText());save();};
+/* A shareable link only exists if this page owns its address bar. Embedded —
+   in the claude.ai artifact viewer, or any iframe — location points at the
+   sandbox frame, not at the page the recipient would open, and the parent's
+   #fragment never reaches us. Copying a link there would hand out a dead URL,
+   so the hands travel as text instead and go straight into "Load hands". */
+function shareableBase(){
+  try{ if(window.top!==window.self) return null; }catch(_){ return null; }
+  try{
+    if(!/^https?:$/.test(location.protocol) && location.protocol!=='file:') return null;
+    return location.origin+location.pathname;
+  }catch(_){ return null; }
+}
+
+$('#shareBtn').onclick=async()=>{
+  if(!App.hands.length){toast('Nothing to share yet');return;}
+  const text=currentText();
+  const base=shareableBase();
+  const payload=base?base+'#h='+b64(text):text;
+  if(base&&payload.length>16000){toast('Too many hands for one link — share fewer');return;}
+  let copied=false;
+  try{await navigator.clipboard.writeText(payload);copied=true;}catch(_){}
+  if(copied){
+    toast(base?'Link copied — stakes stay hidden':'Hands copied — they paste into Load hands');
+    return;
+  }
+  /* clipboard blocked: put it somewhere it can be copied by hand */
+  $('#loaderPanel').hidden=false;
+  $('#loadBtn').setAttribute('aria-pressed','true');
+  $('#hhInput').value=payload;
+  $('#hhInput').focus(); $('#hhInput').select();
+  setStatus(base?'Copy this link to share the hands.'
+                :'Copy this and send it — they paste it into this same box.','');
+};
+
+/* the seat ring is read from CSS, so a breakpoint change has to redraw it */
+let resizeTimer=null;
+window.addEventListener('resize',()=>{
+  clearTimeout(resizeTimer);
+  resizeTimer=setTimeout(()=>{if(App.hands.length) render();},120);
+});
+
+document.addEventListener('keydown',ev=>{
+  if(/^(INPUT|TEXTAREA)$/.test(ev.target.tagName)) return;
+  const k=ev.key;
+  if(k==='ArrowLeft'){goto(App.f-1,true);ev.preventDefault();}
+  else if(k==='ArrowRight'){goto(App.f+1,true);ev.preventDefault();}
+  else if(k===' '){App.playing?pause():play();ev.preventDefault();}
+  else if(k==='Home'){goto(0,true);ev.preventDefault();}
+  else if(k==='End'){const e=cur();if(e)goto(e.frames.length-1,true);ev.preventDefault();}
+  else if(k==='g'||k==='G'){
+    const e=cur();
+    if(e&&!e.revealed){$('#ladder').classList.add('open');$('#rungs').querySelector('.rung')?.focus();}
+  }
+  else if(/^[1-9]$/.test(k)){
+    const i=parseInt(k,10)-1;
+    if(i<App.hands.length) selectHand(i);
+  }
+});
+
+/* ---------- boot ---------- */
+(function boot(){
+  let loaded=false;
+  try{
+    const m=/[#&]h=([A-Za-z0-9\-_]+)/.exec(location.hash);
+    if(m){
+      try{loaded=loadText(unb64(m[1]),true);}catch(_){loaded=false;}
+      if(loaded) toast('Hands loaded from link');
+      else toast('That link could not be read');
+    }
+    if(!loaded) loaded=restore();
+    if(!loaded) loaded=loadText(demoText(),true);
+  }catch(_){loaded=false;}
+  setPlayIcon();
+  /* never leave a blank felt: if every source failed, say so and open the loader */
+  if(!loaded){
+    renderEmpty();
+    setStatus('Could not load the sample hands — paste your own to get going.','err');
+    $('#loaderPanel').hidden=false;
+    $('#loadBtn').setAttribute('aria-pressed','true');
+  } else render();
+})();
+</script>
