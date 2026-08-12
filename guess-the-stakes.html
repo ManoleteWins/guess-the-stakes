@@ -290,6 +290,24 @@ button{font:inherit;color:inherit;background:none;border:none;padding:0;cursor:p
   border:1px solid var(--felt-line);
   pointer-events:none;
 }
+/* The house mark, printed into the felt at the very low contrast DEADREAD uses
+   for its watermark. It sits in the band above the pot rather than dead centre:
+   centred and stacked, a five-card board cuts straight between DEAD and READ and
+   leaves you reading "DEAD" on its own. One line, up here, survives every street. */
+.table::before{
+  content:"DEADREAD";
+  position:absolute;left:50%;top:31%;
+  transform:translate(-50%,-50%);
+  font-family:var(--display);
+  font-size:clamp(13px,5.4cqw,68px);
+  line-height:1;
+  letter-spacing:.06em;
+  white-space:nowrap;
+  color:var(--chalk);
+  opacity:.07;
+  pointer-events:none;
+  z-index:0;
+}
 
 /* Centre: pot over board, nothing else in the flow. Every pixel this column
    grows forces the table rounder, because the top and bottom seats have to
@@ -357,6 +375,18 @@ button{font:inherit;color:inherit;background:none;border:none;padding:0;cursor:p
   border-color:#5A1E27;
   box-shadow:0 2px 5px rgba(0,0,0,.4), inset 0 0 0 2px rgba(239,90,68,.18);
 }
+/* The monogram on the back of every card. A tucked seat card only shows its
+   top sliver, and .card.sm already aligns its glyphs to flex-start — so the
+   same rule lands the mark in the one strip that stays visible. */
+.card.back::after{
+  content:"DR";
+  font-family:var(--display);
+  font-size:calc(var(--cw)*.38);
+  line-height:1;letter-spacing:.03em;
+  color:var(--chalk);
+  opacity:.42;
+}
+.card.sm.back::after{font-size:calc(var(--cw)*.6)}
 .card.dim{opacity:.34;filter:grayscale(.7)}
 /* only the top ~45% of a tucked card shows, so put the glyphs up there */
 .card.sm{
