@@ -298,17 +298,18 @@ button{font:inherit;color:inherit;background:none;border:none;padding:0;cursor:p
   pointer-events:none;
 }
 /* The house mark, printed into the felt at the very low contrast DEADREAD uses
-   for its watermark. Dead centre, and oversized on purpose: the pot sits over
-   its top half and the board over its bottom, so it has to run wider than a
-   five-card street or the ends get buried too. Stacked as the real logo is, a
-   board lands between DEAD and READ and leaves the felt reading "DEAD" — one
-   line takes the overlap without losing the word. */
+   for its watermark. Dead centre, where a room prints its logo — which means
+   the pot sits over its top half and the board over its bottom. At this size
+   it is narrower than a five-card street, so the later streets cover it; that
+   is the trade for keeping it small and central, and it is what a real mat
+   does anyway. It stays one line: stacked as the real logo is, a board lands
+   between DEAD and READ and leaves the felt reading "DEAD". */
 .table::before{
   content:"DEADREAD";
   position:absolute;left:50%;top:50%;
   transform:translate(-50%,-50%);
   font-family:var(--display);
-  font-size:clamp(16px,8.4cqw,104px);
+  font-size:clamp(12px,6cqw,74px);
   line-height:1;
   letter-spacing:.05em;
   white-space:nowrap;
