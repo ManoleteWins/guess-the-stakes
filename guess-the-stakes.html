@@ -1,102 +1,126 @@
 <title>Guess the Stakes</title>
 <style>
 /* ============================================================
-   TOKENS
+   NEW ROCKER — the DEADREAD display face.
+   Subset to letters, digits and the punctuation the page uses, and
+   inlined: the artifact runtime blocks external font hosts, so a
+   @import would leave the wordmark in a fallback serif.
+   ============================================================ */
+@font-face{
+  font-family:"New Rocker";
+  src:url("data:font/woff2;base64,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") format("woff2");
+  font-weight:400;font-style:normal;font-display:swap;
+}
+
+/* ============================================================
+   TOKENS — DEADREAD, turned up
+   The parent brand is a warm near-black stage lit by dried blood.
+   This is the same room with the lights on: the browns are pulled
+   out of the neutrals so they read as warm charcoal rather than
+   rust, the red runs brighter than DEADREAD's #B02415 primary, and
+   a parchment light theme exists at all — the metal brand has none.
+
    Shell is theme-aware. The felt is always dark in both themes,
    the way a video player stays dark inside a light page — so
    everything drawn on felt reads from the fixed on-felt set.
    ============================================================ */
 :root{
-  /* shell — light */
-  --bg:#EAEEE9;
-  --bg-grad:#DFE5DE;
-  --panel:#F7F9F6;
-  --panel-2:#EDF1EB;
-  --line:#CBD4C9;
-  --line-soft:#DCE3DA;
-  --text:#141A16;
-  --text-dim:#4B5850;
-  --text-faint:#7C8A81;
-  --shadow:0 1px 2px rgba(16,28,20,.10), 0 8px 24px rgba(16,28,20,.08);
+  /* shell — light: parchment, not paper */
+  --bg:#F1EAE0;
+  --bg-grad:#E6DACB;
+  --panel:#FBF7F1;
+  --panel-2:#F2EADE;
+  --line:#D9CBB9;
+  --line-soft:#E7DCCD;
+  --text:#1C1416;
+  --text-dim:#584A48;
+  --text-faint:#8B7B76;
+  --shadow:0 1px 2px rgba(34,18,20,.10), 0 8px 24px rgba(34,18,20,.08);
 
-  /* accent */
-  --brass:#8A6B12;
-  --brass-bright:#C9A227;
-  --brass-ink:#2A1F05;
-  --brass-glow:rgba(201,162,39,.28);
-  /* The call-to-action keeps one gold in both themes. --brass has to go dark
-     in light mode to stay legible as a border and label colour, which turns a
-     gradient built from it to mud; the button is a filled chip with its own
-     dark ink, so it reads on either ground. */
-  --cta-a:#E8C64A;
-  --cta-b:#C9A227;
-  --cta-edge:#A8851A;
-  --cta-ink:#241B03;
+  /* accent — DEADREAD blood */
+  --blood:#A82419;
+  --blood-bright:#D93A28;
+  --blood-glow:rgba(217,58,40,.32);
+  /* The call-to-action keeps one red in both themes. --blood has to go dark
+     in light mode to stay legible as a border and label colour, and a red
+     light enough to read as text on the dark theme is too light to carry
+     bone ink; the button is a filled chip with its own fixed pair, so it
+     reads on either ground. Anything else filled with blood uses it too. */
+  --cta-a:#D93A28;
+  --cta-b:#AF2418;
+  --cta-edge:#7E1A0F;
+  --cta-ink:#FFF2ED;
 
-  /* semantic */
-  --good:#1C7A4A;
-  --bad:#A32C2C;
-  --warn:#9A6410;
+  /* semantic — DEADREAD's status set: win green, warn gold, loss blood */
+  --good:#2F6B41;
+  --bad:#A82419;
+  --warn:#8A6A21;
 
   /* on-felt: identical in both themes */
-  --felt-a:#1E4F42;
-  --felt-b:#0D2A24;
-  --felt-line:rgba(232,237,233,.10);
-  --rail:#2C2018;
-  --rail-hi:#4A382A;
-  --chalk:#E8EDE9;
-  --chalk-dim:rgba(232,237,233,.62);
-  --chalk-faint:rgba(232,237,233,.34);
+  --felt-a:#1E4634;
+  --felt-b:#0C2A20;
+  --felt-line:rgba(243,237,227,.10);
+  --rail:#3A1418;
+  --rail-hi:#5A1E27;
+  --chalk:#F3EDE3;
+  --chalk-dim:rgba(243,237,227,.62);
+  --chalk-faint:rgba(243,237,227,.34);
+  --blood-felt:#EF5A44;
+  --blood-felt-glow:rgba(239,90,68,.32);
+  --good-felt:#5FA872;
+  --allin:#ED1C24;
 
-  /* card faces */
-  --card-face:#F4F2EC;
-  --card-edge:#C9C4B6;
-  --suit-s:#1A1D1B;
-  --suit-h:#B3202B;
-  --suit-d:#1A5FB4;
-  --suit-c:#1B6B36;
+  /* card faces — MTG card stock, the way DEADREAD draws a card */
+  --card-face:#F2EADA;
+  --card-edge:#D3C6AC;
+  --suit-s:#1A1412;
+  --suit-h:#B02415;
+  --suit-d:#1F5FA8;
+  --suit-c:#1E6B3C;
 
   --mono:ui-monospace,"SFMono-Regular","SF Mono","Cascadia Mono","JetBrains Mono","Roboto Mono",Menlo,Consolas,monospace;
   --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;
+  --display:"New Rocker","UnifrakturCook",cursive;
+  --serif:"Spectral",Georgia,"Times New Roman",serif;
   --r:3px;
 }
 @media (prefers-color-scheme:dark){
   :root:not([data-theme="light"]){
-    --bg:#0B0F0E;
-    --bg-grad:#0E1413;
-    --panel:#141A19;
-    --panel-2:#1A2220;
-    --line:#28322F;
-    --line-soft:#1F2825;
-    --text:#E8EDE9;
-    --text-dim:#9BAAA2;
-    --text-faint:#6B7A72;
-    --shadow:0 1px 2px rgba(0,0,0,.5), 0 12px 32px rgba(0,0,0,.4);
-    --brass:#C9A227;
-    --brass-bright:#E3BE45;
-    --brass-ink:#17120A;
-    --good:#4FBF84;
-    --bad:#E06A6A;
-    --warn:#D9A441;
+    --bg:#151011;
+    --bg-grad:#1F1718;
+    --panel:#1C1516;
+    --panel-2:#241A1C;
+    --line:#392A2C;
+    --line-soft:#2A1F21;
+    --text:#F6F0E6;
+    --text-dim:#BCAFA4;
+    --text-faint:#877A73;
+    --shadow:0 1px 2px rgba(0,0,0,.5), 0 12px 32px rgba(0,0,0,.45);
+    --blood:#E8523C;
+    --blood-bright:#F4644B;
+    --blood-glow:rgba(240,90,68,.34);
+    --good:#5FA872;
+    --bad:#E8624E;
+    --warn:#C9A24B;
   }
 }
 :root[data-theme="dark"]{
-  --bg:#0B0F0E;
-  --bg-grad:#0E1413;
-  --panel:#141A19;
-  --panel-2:#1A2220;
-  --line:#28322F;
-  --line-soft:#1F2825;
-  --text:#E8EDE9;
-  --text-dim:#9BAAA2;
-  --text-faint:#6B7A72;
-  --shadow:0 1px 2px rgba(0,0,0,.5), 0 12px 32px rgba(0,0,0,.4);
-  --brass:#C9A227;
-  --brass-bright:#E3BE45;
-  --brass-ink:#17120A;
-  --good:#4FBF84;
-  --bad:#E06A6A;
-  --warn:#D9A441;
+  --bg:#151011;
+  --bg-grad:#1F1718;
+  --panel:#1C1516;
+  --panel-2:#241A1C;
+  --line:#392A2C;
+  --line-soft:#2A1F21;
+  --text:#F6F0E6;
+  --text-dim:#BCAFA4;
+  --text-faint:#877A73;
+  --shadow:0 1px 2px rgba(0,0,0,.5), 0 12px 32px rgba(0,0,0,.45);
+  --blood:#E8523C;
+  --blood-bright:#F4644B;
+  --blood-glow:rgba(240,90,68,.34);
+  --good:#5FA872;
+  --bad:#E8624E;
+  --warn:#C9A24B;
 }
 
 /* ============================================================
@@ -115,7 +139,8 @@ body{
   line-height:1.5;
   overflow-x:hidden;
 }
-:focus-visible{outline:2px solid var(--brass-bright);outline-offset:2px;border-radius:2px}
+/* Blood is the focus treatment — DEADREAD never shows a blue browser ring. */
+:focus-visible{outline:2px solid var(--blood-bright);outline-offset:2px;border-radius:2px}
 button{font:inherit;color:inherit;background:none;border:none;padding:0;cursor:pointer}
 .mono{font-family:var(--mono)}
 .tnum{font-variant-numeric:tabular-nums}
@@ -139,12 +164,26 @@ button{font:inherit;color:inherit;background:none;border:none;padding:0;cursor:p
   border-bottom:1px solid var(--line);
 }
 .brand{display:flex;align-items:baseline;gap:9px;margin-right:auto}
+/* Blackletter over letterspaced caps is the whole DEADREAD type system, and
+   the wordmark splits its colour the way DEAD/READ does: the noun the game
+   is played on takes the red. */
 .brand h1{
-  margin:0;font-family:var(--mono);font-size:17px;font-weight:700;
-  letter-spacing:.16em;text-transform:uppercase;
+  margin:0;font-family:var(--display);font-size:27px;font-weight:400;
+  letter-spacing:.01em;line-height:.95;
 }
-.brand .dot{width:6px;height:6px;border-radius:50%;background:var(--brass-bright);flex:none;align-self:center}
-.brand span{font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--text-faint);text-transform:uppercase}
+.brand h1 .hot{color:var(--blood)}
+.brand .spade{
+  font-size:15px;line-height:1;color:var(--blood);flex:none;align-self:center;
+}
+.brand .sub{font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--text-faint);text-transform:uppercase}
+/* Blackletter is wider per character than the mono this replaced, and the
+   topbar wraps rather than scrolls — so the wordmark gives ground first. */
+@media (max-width:620px){
+  .brand{gap:7px}
+  .brand h1{font-size:21px}
+  .brand .spade{font-size:12px}
+  .brand .sub{font-size:9px}
+}
 
 .score{
   font-family:var(--mono);font-size:12px;letter-spacing:.1em;
@@ -174,9 +213,9 @@ button{font:inherit;color:inherit;background:none;border:none;padding:0;cursor:p
   transition:border-color .15s,background .15s;
 }
 .hand-tab:hover{border-color:var(--text-faint)}
-.hand-tab[aria-current="true"]{border-color:var(--brass);background:var(--panel-2)}
+.hand-tab[aria-current="true"]{border-color:var(--blood);background:var(--panel-2)}
 .hand-tab .n{font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:var(--text-faint)}
-.hand-tab[aria-current="true"] .n{color:var(--brass)}
+.hand-tab[aria-current="true"] .n{color:var(--blood)}
 .hand-tab .d{font-family:var(--mono);font-size:14.5px;color:var(--text);white-space:nowrap}
 .hand-tab .s{font-family:var(--mono);font-size:11px;letter-spacing:.06em}
 .hand-tab .s.pending{color:var(--text-faint)}
@@ -207,7 +246,7 @@ button{font:inherit;color:inherit;background:none;border:none;padding:0;cursor:p
   margin-inline:auto;
   container-type:inline-size;
   border-radius:14px;
-  background:linear-gradient(180deg,#161C1A,#0A0E0D);
+  background:linear-gradient(180deg,#241A1B,#100B0C);
   border:1px solid var(--line);
   overflow:hidden;
   /* card sizes live here so the board can reserve its height before the flop */
@@ -292,7 +331,7 @@ button{font:inherit;color:inherit;background:none;border:none;padding:0;cursor:p
 .card{
   width:var(--cw);height:calc(var(--cw)*1.42);
   border-radius:calc(var(--cw)*.11);
-  background:linear-gradient(170deg,#FBFAF6,var(--card-face));
+  background:linear-gradient(170deg,#FDF8EE,var(--card-face));
   border:1px solid var(--card-edge);
   display:flex;flex-direction:column;align-items:center;justify-content:center;
   gap:calc(var(--cw)*-.02);
@@ -310,11 +349,13 @@ button{font:inherit;color:inherit;background:none;border:none;padding:0;cursor:p
 .card.mono-deck[data-suit="d"]{color:var(--suit-s)}
 .card.mono-deck[data-suit="c"]{color:var(--suit-s)}
 
+/* The card back is where the rail's oxblood lacquer shows up again — the
+   deck belongs to the same table it is dealt on. */
 .card.back{
   background:
-    repeating-linear-gradient(45deg,#3A2A1C 0 3px,#2A1E14 3px 6px);
-  border-color:#4A382A;
-  box-shadow:0 2px 5px rgba(0,0,0,.4), inset 0 0 0 2px rgba(201,162,39,.16);
+    repeating-linear-gradient(45deg,#4A181C 0 3px,#331013 3px 6px);
+  border-color:#5A1E27;
+  box-shadow:0 2px 5px rgba(0,0,0,.4), inset 0 0 0 2px rgba(239,90,68,.18);
 }
 .card.dim{opacity:.34;filter:grayscale(.7)}
 /* only the top ~45% of a tucked card shows, so put the glyphs up there */
@@ -348,8 +389,8 @@ button{font:inherit;color:inherit;background:none;border:none;padding:0;cursor:p
 .seat-box{
   position:relative;z-index:1;
   width:100%;border-radius:calc(var(--r) + 1px);
-  background:linear-gradient(180deg,rgba(10,16,14,.94),rgba(6,10,9,.96));
-  border:1px solid rgba(232,237,233,.14);
+  background:linear-gradient(180deg,rgba(20,12,13,.94),rgba(12,7,8,.96));
+  border:1px solid rgba(243,237,227,.15);
   padding:calc(.55cqw + 3px) calc(.7cqw + 3px) calc(.45cqw + 2px);
   text-align:center;
   box-shadow:0 3px 10px rgba(0,0,0,.4);
@@ -382,25 +423,25 @@ button{font:inherit;color:inherit;background:none;border:none;padding:0;cursor:p
   padding:0 6px;border-radius:100px;white-space:nowrap;
   line-height:1.5;
 }
-.seat.hero .seat-box{border-color:rgba(201,162,39,.5)}
-.seat.hero .seat-pos{background:var(--brass-bright);color:var(--brass-ink);border-color:var(--brass-bright);font-weight:700}
+.seat.hero .seat-box{border-color:rgba(239,90,68,.5)}
+.seat.hero .seat-pos{background:var(--cta-b);color:var(--cta-ink);border-color:var(--cta-b);font-weight:700}
 /* The dealer disc used to float on the felt and collided with cards, chips and
    plates depending on the seat. The badge already says BTN, so it becomes the
    button instead of duplicating it. */
 .seat.is-button .seat-pos{
-  background:linear-gradient(160deg,#FBF7E8,#D8CFA8);
-  color:#2A2208;border-color:#9A8C58;font-weight:700;
+  background:linear-gradient(160deg,#FBF6EA,#DCD0B2);
+  color:#2A1E12;border-color:#9C8A66;font-weight:700;
 }
 .seat.acting .seat-box{
-  border-color:var(--brass-bright);
-  box-shadow:0 0 0 1px var(--brass-bright), 0 0 22px var(--brass-glow);
+  border-color:var(--blood-felt);
+  box-shadow:0 0 0 1px var(--blood-felt), 0 0 22px var(--blood-felt-glow);
 }
 /* dimmed, but a folded player's stack still has to be readable */
 .seat.folded{opacity:.58}
-.seat.folded .seat-box{background:linear-gradient(180deg,rgba(10,16,14,.86),rgba(6,10,9,.9))}
+.seat.folded .seat-box{background:linear-gradient(180deg,rgba(20,12,13,.86),rgba(12,7,8,.9))}
 .seat.winner .seat-box{
-  border-color:var(--good);
-  box-shadow:0 0 0 1px var(--good), 0 0 26px rgba(79,191,132,.35);
+  border-color:var(--good-felt);
+  box-shadow:0 0 0 1px var(--good-felt), 0 0 26px rgba(95,168,114,.35);
 }
 
 /* Back inside the plate. It costs height on every seat, but a label that jumps
@@ -415,17 +456,20 @@ button{font:inherit;color:inherit;background:none;border:none;padding:0;cursor:p
 }
 /* Cards and chips are the only things that still track the table, and that is
    physical, not arbitrary: at a real table they sit in front of you. */
-.seat-action.act-raise,.seat-action.act-bet{color:var(--brass-bright)}
-.seat-action.act-allin{color:var(--bad);font-weight:700}
-.seat-action.act-wins{color:var(--good);font-weight:700}
+.seat-action.act-raise,.seat-action.act-bet{color:var(--blood-felt)}
+/* The vivid logo red, which the brand spends sparingly — an all-in is the one
+   moment on the felt that earns it. Weight and glow do the separating from the
+   raises, so the two reds never have to be told apart on hue alone. */
+.seat-action.act-allin{color:var(--allin);font-weight:700;text-shadow:0 0 12px rgba(237,28,36,.55)}
+.seat-action.act-wins{color:var(--good-felt);font-weight:700}
 
 /* dealer button */
 .dealer{
   position:absolute;transform:translate(-50%,-50%);
   width:clamp(20px,3cqw,40px);aspect-ratio:1;border-radius:50%;
-  background:linear-gradient(160deg,#FBF7E8,#D8CFA8);
-  border:1px solid #9A8C58;
-  color:#2A2208;font-family:var(--mono);font-weight:700;
+  background:linear-gradient(160deg,#FBF6EA,#DCD0B2);
+  border:1px solid #9C8A66;
+  color:#2A1E12;font-family:var(--mono);font-weight:700;
   font-size:clamp(10px,1.5cqw,17px);
   display:grid;place-items:center;
   box-shadow:0 2px 6px rgba(0,0,0,.5);
@@ -441,8 +485,8 @@ button{font:inherit;color:inherit;background:none;border:none;padding:0;cursor:p
   display:flex;align-items:center;gap:.35em;
   font-family:var(--mono);font-size:calc(clamp(11px,1.7cqw,22px)*var(--sc,1));font-weight:700;
   color:var(--chalk);font-variant-numeric:tabular-nums;
-  background:rgba(6,10,9,.82);
-  border:1px solid rgba(232,237,233,.16);
+  background:rgba(14,8,9,.84);
+  border:1px solid rgba(243,237,227,.16);
   border-radius:100px;padding:.12em .6em .12em .2em;
   white-space:nowrap;
   box-shadow:0 2px 8px rgba(0,0,0,.45);
@@ -451,10 +495,10 @@ button{font:inherit;color:inherit;background:none;border:none;padding:0;cursor:p
 }
 .puck i{
   width:1.05em;aspect-ratio:1;border-radius:50%;flex:none;
-  background:var(--brass-bright);
-  border:.14em dashed rgba(42,31,5,.55);
+  background:var(--blood-felt);
+  border:.14em dashed rgba(58,10,8,.55);
 }
-.puck.blind i{background:var(--chalk-faint);border-color:rgba(6,10,9,.4)}
+.puck.blind i{background:var(--chalk-faint);border-color:rgba(12,7,8,.4)}
 @keyframes puckIn{from{opacity:0;transform:translate(-50%,-50%) scale(.7)}to{opacity:1}}
 
 /* winner flash */
@@ -473,13 +517,15 @@ button{font:inherit;color:inherit;background:none;border:none;padding:0;cursor:p
   border:1px solid var(--line);border-radius:var(--r);
   background:var(--panel);
 }
-.stakes-strip.revealed{border-color:var(--brass);background:var(--panel-2)}
+.stakes-strip.revealed{border-color:var(--blood);background:var(--panel-2)}
 .stakes-face{display:flex;flex-direction:column;gap:5px;margin-right:auto;min-width:0}
 .stakes-face .eyebrow{color:var(--text-faint)}
+/* The hatch is the whole premise of the page, so it gets the one accent —
+   the number you are being kept from is the reddest thing on screen. */
 .redacted{
   display:inline-block;height:22px;width:132px;border-radius:2px;
-  background:repeating-linear-gradient(115deg,var(--text-faint) 0 6px,transparent 6px 11px);
-  opacity:.4;
+  background:repeating-linear-gradient(115deg,var(--blood) 0 6px,transparent 6px 11px);
+  opacity:.62;
 }
 .stakes-val{
   font-family:var(--mono);font-size:23px;font-weight:700;
@@ -488,24 +534,27 @@ button{font:inherit;color:inherit;background:none;border:none;padding:0;cursor:p
 }
 .stakes-val .tag{
   font-size:10px;font-weight:700;letter-spacing:.14em;
-  background:var(--brass-bright);color:var(--brass-ink);
+  background:var(--cta-b);color:var(--cta-ink);
   padding:2px 7px;border-radius:2px;
 }
 .stakes-val .sub{font-size:11px;font-weight:400;letter-spacing:.06em;color:var(--text-dim)}
 
+/* The one blackletter button on the page. Title Case, not the brand's usual
+   uppercase: New Rocker's caps are ornate enough that a three-word label set
+   in them stops being readable at button size. */
 .guess-btn{
-  font-family:var(--mono);font-size:13.5px;font-weight:700;
-  letter-spacing:.16em;text-transform:uppercase;
-  padding:14px 24px;border-radius:var(--r);
+  font-family:var(--display);font-size:20px;font-weight:400;
+  letter-spacing:.02em;line-height:1;
+  padding:13px 26px 15px;border-radius:var(--r);
   background:linear-gradient(180deg,var(--cta-a),var(--cta-b));
   color:var(--cta-ink);
   border:1px solid var(--cta-edge);
-  box-shadow:0 2px 0 rgba(0,0,0,.18), 0 0 22px var(--brass-glow);
+  box-shadow:0 2px 0 rgba(0,0,0,.22), 0 0 22px var(--blood-glow);
   transition:transform .12s, box-shadow .2s, filter .15s;
   flex:none;
 }
-.guess-btn:hover{filter:brightness(1.08);box-shadow:0 2px 0 rgba(0,0,0,.18), 0 0 32px var(--brass-glow)}
-.guess-btn:active{transform:translateY(1px);box-shadow:0 1px 0 rgba(0,0,0,.18)}
+.guess-btn:hover{filter:brightness(1.09);box-shadow:0 2px 0 rgba(0,0,0,.22), 0 0 34px var(--blood-glow)}
+.guess-btn:active{transform:translateY(1px);box-shadow:0 1px 0 rgba(0,0,0,.22), inset 0 2px 6px rgba(0,0,0,.35)}
 
 .verdict{
   font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;
@@ -528,7 +577,7 @@ button{font:inherit;color:inherit;background:none;border:none;padding:0;cursor:p
   background:var(--panel-2);color:var(--text-dim);
   transition:border-color .12s,color .12s,transform .12s;
 }
-.rung:hover{border-color:var(--brass);color:var(--text);transform:translateY(-1px)}
+.rung:hover{border-color:var(--blood);color:var(--text);transform:translateY(-1px)}
 .rung .m{display:block;font-size:11px;font-weight:400;letter-spacing:.04em;color:var(--text-faint);margin-top:2px}
 .rung:hover .m{color:var(--text-dim)}
 .ladder-foot{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
@@ -567,7 +616,7 @@ button{font:inherit;color:inherit;background:none;border:none;padding:0;cursor:p
 }
 .tick:hover{background:var(--text-faint)}
 .tick.done{background:var(--text-faint)}
-.tick.now{background:var(--brass-bright);box-shadow:0 0 8px var(--brass-glow)}
+.tick.now{background:var(--blood-bright);box-shadow:0 0 8px var(--blood-glow)}
 .tick.street{background:var(--text-dim)}
 
 .speed{display:flex;gap:3px}
@@ -638,13 +687,13 @@ button{font:inherit;color:inherit;background:none;border:none;padding:0;cursor:p
 }
 .log-row:hover{background:var(--panel-2)}
 .log-row[aria-current="true"]{
-  background:var(--panel-2);border-left-color:var(--brass-bright);
+  background:var(--panel-2);border-left-color:var(--blood-bright);
 }
 .log-row .pos{
   width:50px;flex:none;font-size:11.5px;letter-spacing:.1em;
   color:var(--text-faint);text-transform:uppercase;
 }
-.log-row.is-hero .pos{color:var(--brass)}
+.log-row.is-hero .pos{color:var(--blood)}
 .log-row .act{color:var(--text-dim);flex:1;min-width:0}
 .log-row .amt{color:var(--text);font-variant-numeric:tabular-nums;font-weight:700}
 .log-row .amt .u{font-size:.78em;font-weight:400;color:var(--text-faint);margin-left:.15em}
@@ -665,7 +714,10 @@ button{font:inherit;color:inherit;background:none;border:none;padding:0;cursor:p
 }
 .loader textarea::placeholder{color:var(--text-faint)}
 .loader-foot{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.hint{font-size:12px;color:var(--text-faint);line-height:1.55}
+/* The only prose on the page, so it gets the brand's editorial serif at the
+   reading size DEADREAD sets for body copy. Everything else here is data and
+   stays in the mono. */
+.hint{font-family:var(--serif);font-size:13.5px;color:var(--text-faint);line-height:1.6}
 .hint code{font-family:var(--mono);font-size:11px;background:var(--panel-2);padding:1px 5px;border-radius:2px;border:1px solid var(--line-soft)}
 .status{font-family:var(--mono);font-size:11px;letter-spacing:.06em}
 .status.err{color:var(--bad)}
@@ -692,6 +744,18 @@ button{font:inherit;color:inherit;background:none;border:none;padding:0;cursor:p
   border:1px solid var(--line);border-radius:2px;padding:1px 5px;
   background:var(--panel-2);color:var(--text-dim);
 }
+.foot-note{margin-left:auto}
+/* The house mark. DEADREAD stacks its wordmark bone over blood; at footer
+   size it runs on one line, but keeps the split. */
+.dr{
+  display:inline-flex;align-items:center;gap:.45em;
+  font-family:var(--display);font-size:15px;line-height:1;letter-spacing:.02em;
+  padding-left:13px;border-left:1px solid var(--line);
+}
+.dr-suit{font-size:9px;color:var(--blood)}
+.dr-dead{color:var(--text-dim)}
+.dr-read{color:var(--blood)}
+@media (max-width:640px){.foot-note{margin-left:0}.dr{margin-left:auto}}
 
 .empty{
   display:grid;place-items:center;height:100%;
@@ -708,9 +772,9 @@ button{font:inherit;color:inherit;background:none;border:none;padding:0;cursor:p
 
   <header class="topbar">
     <div class="brand">
-      <span class="dot"></span>
-      <h1>Guess the Stakes</h1>
-      <span>Hand Replayer</span>
+      <span class="spade" aria-hidden="true">&spades;</span>
+      <h1>Guess the <span class="hot">Stakes</span></h1>
+      <span class="sub">Hand Replayer</span>
     </div>
     <div class="score" id="score" hidden><span>Called</span> <b id="scoreVal">0/0</b></div>
     <button class="btn" id="deckBtn" aria-pressed="true">4-colour</button>
@@ -726,7 +790,7 @@ button{font:inherit;color:inherit;background:none;border:none;padding:0;cursor:p
     <div class="loader open">
       <textarea id="hhInput" spellcheck="false" placeholder="Paste hand histories here — as many as you like, from as many sites as you like. Each hand becomes its own tab.&#10;&#10;Mixed pastes are fine: drop PokerStars, GGPoker and Winamax hands in together."></textarea>
       <div class="loader-foot">
-        <button class="btn" id="parseBtn" style="border-color:var(--brass);color:var(--text)">Load</button>
+        <button class="btn" id="parseBtn" style="border-color:var(--blood);color:var(--text)">Load</button>
         <button class="btn" id="demoBtn">Restore samples</button>
         <span class="status" id="loadStatus"></span>
       </div>
@@ -758,7 +822,7 @@ button{font:inherit;color:inherit;background:none;border:none;padding:0;cursor:p
           <div class="stakes-val" id="stakesVal"><span class="redacted"></span></div>
         </div>
         <div id="verdictSlot"></div>
-        <button class="guess-btn" id="guessBtn">Guess the stakes</button>
+        <button class="guess-btn" id="guessBtn">Guess the Stakes</button>
         <div class="ladder" id="ladder">
           <div class="ladder-rungs" id="rungs"></div>
           <div class="ladder-foot">
@@ -809,7 +873,11 @@ button{font:inherit;color:inherit;background:none;border:none;padding:0;cursor:p
     <span><kbd>Space</kbd> play</span>
     <span><kbd>G</kbd> guess</span>
     <span><kbd>1</kbd>&ndash;<kbd>9</kbd> hand</span>
-    <span style="margin-left:auto">Amounts in big blinds until you call it</span>
+    <span class="foot-note">Amounts in big blinds until you call it</span>
+    <span class="dr" title="DEADREAD — Stop Guessing. Start Reading.">
+      <span class="dr-suit" aria-hidden="true">&spades;</span>
+      <span><span class="dr-dead">DEAD</span><span class="dr-read">READ</span></span>
+    </span>
   </footer>
 </div>
 
