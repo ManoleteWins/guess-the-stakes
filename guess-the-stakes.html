@@ -291,20 +291,22 @@ button{font:inherit;color:inherit;background:none;border:none;padding:0;cursor:p
   pointer-events:none;
 }
 /* The house mark, printed into the felt at the very low contrast DEADREAD uses
-   for its watermark. It sits in the band above the pot rather than dead centre:
-   centred and stacked, a five-card board cuts straight between DEAD and READ and
-   leaves you reading "DEAD" on its own. One line, up here, survives every street. */
+   for its watermark. Dead centre, and oversized on purpose: the pot sits over
+   its top half and the board over its bottom, so it has to run wider than a
+   five-card street or the ends get buried too. Stacked as the real logo is, a
+   board lands between DEAD and READ and leaves the felt reading "DEAD" — one
+   line takes the overlap without losing the word. */
 .table::before{
   content:"DEADREAD";
-  position:absolute;left:50%;top:31%;
+  position:absolute;left:50%;top:50%;
   transform:translate(-50%,-50%);
   font-family:var(--display);
-  font-size:clamp(13px,5.4cqw,68px);
+  font-size:clamp(16px,8.4cqw,104px);
   line-height:1;
-  letter-spacing:.06em;
+  letter-spacing:.05em;
   white-space:nowrap;
   color:var(--chalk);
-  opacity:.07;
+  opacity:.06;
   pointer-events:none;
   z-index:0;
 }
@@ -384,9 +386,9 @@ button{font:inherit;color:inherit;background:none;border:none;padding:0;cursor:p
   font-size:calc(var(--cw)*.38);
   line-height:1;letter-spacing:.03em;
   color:var(--chalk);
-  opacity:.42;
+  opacity:.2;
 }
-.card.sm.back::after{font-size:calc(var(--cw)*.6)}
+.card.sm.back::after{font-size:calc(var(--cw)*.54)}
 .card.dim{opacity:.34;filter:grayscale(.7)}
 /* only the top ~45% of a tucked card shows, so put the glyphs up there */
 .card.sm{
