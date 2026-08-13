@@ -451,6 +451,11 @@ button{font:inherit;color:inherit;background:none;border:none;padding:0;cursor:p
 /* dimmed, but a folded player's stack still has to be readable */
 .seat.folded{opacity:.58}
 .seat.folded .seat-box{background:linear-gradient(180deg,rgba(20,12,13,.86),rgba(12,7,8,.9))}
+/* At the table but not in the hand — sitting out, or waiting for the big
+   blind. It holds no position and was dealt no cards, so it sits back further
+   than a fold: present, plainly not playing. */
+.seat.sat-out{opacity:.4}
+.seat.sat-out .seat-box{background:linear-gradient(180deg,rgba(20,12,13,.86),rgba(12,7,8,.9))}
 .seat.winner .seat-box{
   border-color:var(--good-felt);
   box-shadow:0 0 0 1px var(--good-felt), 0 0 26px rgba(95,168,114,.35);
@@ -965,16 +970,49 @@ const POSITIONS = {
   9: ['BTN', 'SB', 'BB', 'UTG', 'UTG+1', 'UTG+2', 'LJ', 'HJ', 'CO'],
   10: ['BTN', 'SB', 'BB', 'UTG', 'UTG+1', 'UTG+2', 'UTG+3', 'LJ', 'HJ', 'CO']
 };
-function assignPositions(players, buttonSeat) {
-  const seats = players.map(p => p.seat).sort((a, b) => a - b);
+/* Who was actually dealt in. A seat can be at the table without being in the
+   hand — sitting out, or waiting for the big blind — and counting those seats
+   drags every position after them one place round the table, so the player who
+   posted the small blind gets labelled the big blind. The "is sitting out"
+   note is no help on its own, since only some rooms write it; the hand itself
+   says it plainly instead. Anyone who posts, acts, shows or collects was dealt
+   in, and so was anyone holding cards. */
+function dealtIn(hand) {
+  const acted = new Set();
+  for (const a of hand.actions) if (a.name) acted.add(a.name);
+  const live = hand.players.filter(p => acted.has(p.name) || (hand.holeCards[p.name] || []).length);
+  /* a reading that lost the action list must not empty the table */
+  return live.length >= 2 ? live : hand.players;
+}
+
+function assignPositions(hand) {
+  const live = dealtIn(hand);
+  const inHand = new Set(live);
+  for (const p of hand.players) { p.inHand = inHand.has(p); p.pos = ''; }
+
+  const seats = live.map(p => p.seat).sort((a, b) => a - b);
   const n = seats.length;
   if (!n) return;
-  let bi = seats.indexOf(buttonSeat);
-  if (bi < 0) bi = 0;
   const names = POSITIONS[n] || POSITIONS[10];
+
+  let bi = seats.indexOf(hand.buttonSeat);
+  /* A button on an empty seat is a dead button, and a room that never names
+     the button leaves nothing to count from at all. Both are answered by the
+     big blind, which a hand history states outright: find who posted it and
+     count backwards. A late arrival posts one too, so where more than one was
+     posted take the one sitting directly behind a small blind. */
+  if (bi < 0) {
+    const ring = nm => { const p = live.find(x => x.name === nm); return p ? seats.indexOf(p.seat) : -1; };
+    const posts = w => hand.actions.filter(a => a.type === 'blind' && a.which === w)
+      .map(a => ring(a.name)).filter(i => i >= 0);
+    const sbs = posts('sb'), bbs = posts('bb');
+    const bb = bbs.length > 1 ? (bbs.find(i => sbs.some(s => (s + 1) % n === i)) ?? bbs[0]) : bbs[0];
+    if (bb >= 0) bi = (bb - names.indexOf('BB') + n) % n;
+  }
+  if (bi < 0) bi = 0;
   for (let i = 0; i < n; i++) {
     const seat = seats[(bi + i) % n];
-    players.find(x => x.seat === seat).pos = names[i] || ('+' + i);
+    live.find(x => x.seat === seat).pos = names[i] || ('+' + i);
   }
 }
 
@@ -1849,7 +1887,7 @@ function finalise(hand) {
   }
   if (!hand.bb) hand.parseWarnings.push('Could not work out the big blind');
 
-  assignPositions(hand.players, hand.buttonSeat);
+  assignPositions(hand);
 
   tagRuns(hand.actions);
 
@@ -2134,7 +2172,7 @@ function unpackHand(line) {
 
   h.board = unpackCards(f[5]);
   h.winners = h.actions.filter(a => a.type === 'collect').map(a => a.name);
-  assignPositions(h.players, h.buttonSeat);
+  assignPositions(h);
   return h;
 }
 
@@ -2174,6 +2212,7 @@ function buildFrames(hand) {
     players: hand.players.map(p => {
       const o = {
         seat: p.seat, name: p.name, pos: p.pos, startStack: p.startStack, stack: p.startStack,
+        inHand: p.inHand !== false,
         bet: 0, invested: 0, cards: [], folded: false, allIn: false,
         winner: false, won: 0, revealed: false, label: ''
       };
@@ -2351,7 +2390,7 @@ function summarise(hand, frames) {
   let finalPot = hand.totalPot;
   if (!finalPot && final) finalPot = final.players.reduce((s, p) => s + p.invested, 0);
   return {
-    dealt: hand.players.length, effective: eff, effectiveBB: eff / bb,
+    dealt: hand.players.filter(p => p.inHand !== false).length, effective: eff, effectiveBB: eff / bb,
     finalPot, finalPotBB: finalPot / bb,
     wentToShowdown: frames.some(f => f.kind === 'show')
   };
@@ -2503,6 +2542,7 @@ function render(){
     const isHero=p.name===e.hand.heroName;
     /* seats on the top half hang their cards downward, into the table */
     const cls=['seat',pt.y<50?'inward-down':'',isHero?'hero':'',p.folded?'folded':'',
+      p.inHand===false?'sat-out':'',
       seat===e.hand.buttonSeat?'is-button':'',
       (fr.acting===seat&&!p.folded)?'acting':'',
       (p.winner&&fr.kind==='result')?'winner':''].filter(Boolean).join(' ');
@@ -2512,7 +2552,7 @@ function render(){
       cards=p.revealed
         ? p.cards.map(c=>cardHTML(c,'sm'+(p.folded?' dim':''))).join('')
         : (p.folded?'':p.cards.map(()=>backHTML('sm')).join(''));
-    } else if(!p.folded){
+    } else if(!p.folded&&p.inHand!==false){
       cards=backHTML('sm')+backHTML('sm');
     }
 
@@ -2532,11 +2572,11 @@ function render(){
     html+='<div class="'+cls+'" style="left:'+pt.x.toFixed(2)+'%;top:'+pt.y.toFixed(2)+'%">'
       +'<div class="seat-cards">'+cards+'</div>'
       +'<div class="seat-box">'
-      +'<div class="seat-top"><span class="seat-pos">'+p.pos+'</span>'
+      +'<div class="seat-top">'+(p.pos?'<span class="seat-pos">'+p.pos+'</span>':'')
       +'<span class="seat-name">'+esc(displayName(p))+'</span></div>'
       +'<div class="seat-stack"><span data-num="stack-'+seat+'">'+amt(p.stack)+'</span>'
       +(unitLabel()?'<span class="u">'+unitLabel()+'</span>':'')+'</div>'
-      +'<div class="seat-action '+actCls+'">'+(p.label||'')+'</div>'
+      +'<div class="seat-action '+actCls+'">'+(p.label||(p.inHand===false?'OUT':''))+'</div>'
       +'</div></div>';
   });
 
