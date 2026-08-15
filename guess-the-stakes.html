@@ -2499,7 +2499,10 @@ const STAKE_LADDER = [
   { bb: 0.02, name: 'NL2' }, { bb: 0.05, name: 'NL5' }, { bb: 0.10, name: 'NL10' },
   { bb: 0.25, name: 'NL25' }, { bb: 0.50, name: 'NL50' }, { bb: 1.00, name: 'NL100' },
   { bb: 2.00, name: 'NL200' }, { bb: 5.00, name: 'NL500' }, { bb: 10.0, name: 'NL1K' },
-  { bb: 20.0, name: 'NL2K' }, { bb: 50.0, name: 'NL5K' }, { bb: 100, name: 'NL10K' }
+  /* the top rung is open-ended: nothing sits above it, so every game from
+     $50/$100 up lands here rather than the ladder claiming a $500/$1000 hand
+     is NL10K */
+  { bb: 20.0, name: 'NL2K' }, { bb: 50.0, name: 'NL5K' }, { bb: 100, name: 'NL10K+', up: true }
 ];
 function nearestRung(bbSize) {
   let best = 0, bd = Infinity;
@@ -2841,7 +2844,7 @@ function renderRungs(){
   } else {
     wrap.innerHTML=STAKE_LADDER.map((r,i)=>
       '<button class="rung" data-rung="'+i+'">'+r.name
-      +'<span class="m">'+fmtMoney(r.bb/2,'$',r.bb)+'/'+fmtMoney(r.bb,'$',r.bb)+'</span></button>').join('');
+      +'<span class="m">'+fmtMoney(r.bb/2,'$',r.bb)+'/'+fmtMoney(r.bb,'$',r.bb)+(r.up?'+':'')+'</span></button>').join('');
     $('#ladderHint').textContent='Read the sizing, the stack depth and how wide they are going.';
   }
 }
