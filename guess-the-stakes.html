@@ -1001,6 +1001,16 @@ function assignPositions(hand) {
     const bb = bbs.length > 1 ? (bbs.find(i => sbs.some(s => (s + 1) % n === i)) ?? bbs[0]) : bbs[0];
     if (bb >= 0) bi = (bb - names.indexOf('BB') + n) % n;
   }
+  /* A room that printed no blinds at all leaves even that unanswered, but the
+     betting still gives it away: preflop opens on the seat after the big blind,
+     so whoever spoke first fixes the whole ring. Short-handed that opener walks
+     back round to the button, which the same sum covers. */
+  if (bi < 0) {
+    const first = hand.actions.find(a => a.name && a.type !== 'blind' && a.type !== 'ante' && !QUIET[a.type]);
+    const p = first && live.find(x => x.name === first.name);
+    const fi = p ? seats.indexOf(p.seat) : -1;
+    if (fi >= 0) bi = (fi - (names.indexOf('BB') + 1) % n + n) % n;
+  }
   if (bi < 0) bi = 0;
   for (let i = 0; i < n; i++) {
     const seat = seats[(bi + i) % n];
@@ -1116,6 +1126,13 @@ function blankHand(fmt, block) {
 /* =========================================================================
    1. PokerStars family  (+ GGPoker, and Bovada/Ignition as a variant)
    ========================================================================= */
+/* The street markers are the room's own: "*** FLOP *** [Jd Qd Ts]". They do
+   not always survive the trip to us — anything that reads the paste as
+   Markdown takes the *** for emphasis and swallows it, leaving " FLOP  [Jd Qd
+   Ts]" behind. Take the marker with or without them, but only where nothing
+   trails it but the cards, so that RiverRat88 folding is not read as a street. */
+const STARS_MARKER = /^\s*(?:\*\*\*\s*)?(?:(FIRST|SECOND|THIRD)\s+)?(HOLE CARDS|FLOP|TURN|RIVER|SHOW ?DOWN|SUMMARY|PRE-?FLOP)\s*(\d+)?\s*(?:\*\*\*)?\s*(\[.*)?$/i;
+
 function parseStars(block, fmt) {
   const lines = block.split('\n').map(l => l.replace(/\s+$/, '')).filter(l => l.trim() !== '');
   if (!lines.length) return null;
@@ -1155,14 +1172,30 @@ function parseStars(block, fmt) {
     }
   }
 
+  /* Some of the family state the stakes bare rather than bracketed:
+     "Hand #1 - Holdem (No Limit) - $0.01/$0.02 - ...". Holding out for the
+     currency mark is what keeps the date out of it. */
+  if (!hand.headerBB) {
+    const m = /([€$£¥])\s*([\d.,]+)\s*\/\s*([€$£¥])?\s*([\d.,]+)/.exec(head);
+    if (m) { hand.currency = m[1] || m[3] || hand.currency; hand.headerSB = num(m[2]); hand.headerBB = num(m[4]); }
+  }
+
   const tM = /^Table\s+'([^']*)'\s*(?:\(([^)]*)\)\s*)?(?:(\d+)\s*-\s*max)?/i.exec(lines[1] || '');
   if (tM) { hand.tableName = tM[1] || ''; hand.maxPlayers = tM[3] ? parseInt(tM[3], 10) : 0; }
+  /* and some name the table without saying Table at all:
+     "Clarkston 6-max Seat #3 is the button" */
+  else {
+    const m = /^(.*?)\s*(\d+)\s*-\s*max\b/i.exec(lines[1] || '');
+    if (m) { hand.tableName = m[1].trim(); hand.maxPlayers = parseInt(m[2], 10); }
+  }
   const btnM = /Seat\s*#\s*(\d+)\s*is the button/i.exec(block);
   if (btnM) hand.buttonSeat = parseInt(btnM[1], 10);
 
   for (const line of lines) {
-    if (/^\*\*\*/.test(line)) break;
-    const sM = /^Seat\s+(\d+):\s+(.+?)\s+\(\s*([€$£¥]?[\d.,]+)\s+in chips/i.exec(line);
+    if (STARS_MARKER.test(line)) break;
+    /* "in chips" is PokerStars' own wording; the rest of the family prints the
+       stack bare, and a seat line is no less a seat line for it. */
+    const sM = /^Seat\s+(\d+):\s+(.+?)\s+\(\s*([€$£¥]?[\d.,]+)(?:\s+in chips)?\s*\)/i.exec(line);
     if (sM) hand.players.push({
       seat: parseInt(sM[1], 10), name: sM[2].trim(), startStack: num(sM[3]),
       sittingOut: /is sitting out/i.test(line)
@@ -1179,6 +1212,7 @@ function parseStars(block, fmt) {
 
   const nameSet = new Set(hand.players.map(p => p.name));
   const known = s => nameSet.has(s);
+  const names = hand.players.map(p => p.name).sort((a, b) => b.length - a.length);
   let street = 'preflop', inSummary = false;
   const push = a => hand.actions.push(a);
 
@@ -1186,7 +1220,7 @@ function parseStars(block, fmt) {
     const line = lines[i];
     let m;
 
-    if ((m = /^\*\*\*\s*(?:(FIRST|SECOND|THIRD)\s+)?(HOLE CARDS|FLOP|TURN|RIVER|SHOW ?DOWN|SUMMARY|PRE-?FLOP)\s*(\d+)?\s*\*\*\*(.*)$/i.exec(line))) {
+    if ((m = STARS_MARKER.exec(line))) {
       const word = (m[1] || '').toUpperCase();
       const which = m[2].toUpperCase().replace(/\s+/g, ' ');
       const rest = m[4] || '';
@@ -1236,11 +1270,12 @@ function parseStars(block, fmt) {
       push({ type: 'collect', name: m[1].trim(), amount: num(m[2]), street }); continue;
     }
 
-    if ((m = /^(.+?)\s*:\s+(.*)$/.exec(line))) {
-      const name = m[1].trim(), rest = m[2].trim();
-      if (!known(name)) continue;
-      if (/^said,/i.test(rest)) continue;
-      const a = starsVerb(name, rest, street, hand);
+    /* Most of the family put a colon after the name and some do not, so match
+       against the seat list rather than the punctuation. */
+    const pl = playerLine(line, names);
+    if (pl) {
+      if (/^said,/i.test(pl.rest)) continue;
+      const a = starsVerb(pl.name, pl.rest, street, hand);
       if (a) push(a);
       continue;
     }
@@ -1265,8 +1300,8 @@ function starsVerb(name, rest, street, hand) {
     m = /([€$£¥]?[\d.,]+)\s*$/.exec(rest);
     return { type: 'blind', name, amount: num(m && m[1]), which: 'sb+bb', street: 'preflop' };
   }
-  if ((m = /^(?:posts\s+)?small\s*blind\s*[:\s]\s*([€$£¥]?[\d.,]+)/i.exec(rest))) return { type: 'blind', name, amount: num(m[1]), which: 'sb', street: 'preflop' };
-  if ((m = /^(?:posts\s+)?big\s*blind\s*[:\s]\s*([€$£¥]?[\d.,]+)/i.exec(rest))) return { type: 'blind', name, amount: num(m[1]), which: 'bb', street: 'preflop' };
+  if ((m = /^(?:posts\s+)?(?:the\s+)?small\s*blind\s*[:\s]\s*([€$£¥]?[\d.,]+)/i.exec(rest))) return { type: 'blind', name, amount: num(m[1]), which: 'sb', street: 'preflop' };
+  if ((m = /^(?:posts\s+)?(?:the\s+)?big\s*blind\s*[:\s]\s*([€$£¥]?[\d.,]+)/i.exec(rest))) return { type: 'blind', name, amount: num(m[1]), which: 'bb', street: 'preflop' };
   if ((m = /^posts?\s+(?:a\s+)?straddle\s+([€$£¥]?[\d.,]+)/i.exec(rest))) return { type: 'blind', name, amount: num(m[1]), which: 'straddle', street: 'preflop' };
   if ((m = /^(?:shows|showed)\s+\[([^\]]+)\](?:\s*\((.+?)\))?/i.exec(rest))) {
     hand.holeCards[name] = parseCards(m[1]);
@@ -1916,7 +1951,17 @@ function inferStreets(hand) {
 
     if (t === 'fold') { folded.add(a.name); return; }
     if (t === 'check') return;
-    if (t === 'call' || t === 'bet') { commit(a.name, a.amount); return; }
+    if (t === 'bet') { commit(a.name, a.amount); return; }
+    /* A call settles against the bet rather than against its own amount: it can
+       never leave a player above the bet, and only running out of chips leaves
+       them below it. Taking the amount at face value trusts a figure the room
+       gets wrong whenever it printed no blinds — every total is then short by
+       the blind, nobody ever comes level, and the round never closes. */
+    if (t === 'call') {
+      const room = startStack[a.name] > 0 ? startStack[a.name] - (paid[a.name] || 0) : Infinity;
+      commit(a.name, Math.max(0, Math.min(max - (bet[a.name] || 0), room)));
+      return;
+    }
     /* same reading buildFrames applies: a total if it beats the bet, else chips added */
     if (t === 'raise') {
       const to = a.to <= max + 1e-9 ? (bet[a.name] || 0) + a.to : a.to;
@@ -1955,6 +2000,12 @@ function inferStreets(hand) {
   while (tail > 0 && QUIET[out[tail - 1].type]) tail--;
   const runout = [];
   for (let i = 0; i < extra; i++) runout.push(deal());
+  /* Cards going face up close the last round the same way a new street does.
+     Without that marker the river's chips never reach the pot, and the hand
+     plays out under a total well short of what was actually won. */
+  if (out.slice(tail).some(a => a.type === 'show')) {
+    runout.push({ type: 'street', street: 'showdown', run: 1, cards: [] });
+  }
   out.splice(tail, 0, ...runout);
 
   let street = 'preflop';
@@ -1978,6 +2029,14 @@ function finalise(hand) {
     if (antes.length) hand.ante = mode(antes);
   }
   if (!hand.bb) hand.parseWarnings.push('Could not work out the big blind');
+  /* A hand with nobody posting a blind did not read properly, however whole the
+     rest of it looks. Everything downstream leans on those two lines: positions
+     count back from the big blind, the pot opens with them, and a room that
+     states a raise as chips added leaves every total short by one. Say so at
+     the door — a half-read hand that replays quietly is one that gets shared. */
+  if (!hand.actions.some(a => a.type === 'blind')) {
+    hand.parseWarnings.push('No blinds posted in the text — positions and pot are read off the betting');
+  }
 
   assignPositions(hand);
 
@@ -2267,6 +2326,12 @@ function unpackHand(line) {
 
   h.board = unpackCards(f[5]);
   h.winners = h.actions.filter(a => a.type === 'collect').map(a => a.name);
+  /* A link packed from a half-read hand carries the gap with it, and says
+     nothing about it — the note it travels with was written before anyone
+     noticed. Own up to it on the way back out, the same as a fresh read does. */
+  if (!h.actions.some(a => a.type === 'blind')) {
+    h.parseWarnings.push('No blinds posted in the text — positions and pot are read off the betting');
+  }
   assignPositions(h);
   /* links shared before the streets were worked out carry the betting but no
      markers, and they are supposed to keep working */
