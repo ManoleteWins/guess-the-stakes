@@ -1871,6 +1871,106 @@ function tagRuns(actions) {
   }
 }
 
+/* Streets the room never wrote down. Plenty of exports log the betting but
+   never mark the flop — club apps especially — and without a marker every
+   action lands on the preflop and the board never comes out, so a hand that
+   ran to the turn replays as a preflop pot. The betting says where the streets
+   are anyway: a round is over once everyone still in it has acted and matched
+   the bet, so whatever comes next can only belong to the next street. Deal the
+   board across the rounds that fall out of that. Only ever runs when the
+   reading found no street marker at all, so a room that marks them properly
+   never comes near this. */
+const STREET_SEQ = ['flop', 'turn', 'river'];
+const STREET_SIZE = { flop: 3, turn: 1, river: 1 };
+const STREET_FROM = { flop: 0, turn: 3, river: 4 };
+/* actions that say nothing about whose turn it is */
+const QUIET = { show: 1, collect: 1, muck: 1, uncalled: 1 };
+
+function inferStreets(hand) {
+  if (!hand.actions.length || hand.actions.some(a => a.type === 'street')) return;
+
+  const startStack = {};
+  for (const p of hand.players) startStack[p.name] = p.startStack;
+  const paid = {}, shoved = new Set();
+  let bet = {}, max = 0, acted = new Set(), folded = new Set(), opened = 0;
+  const breaks = [];
+
+  const allIn = nm => shoved.has(nm) || (startStack[nm] > 0 && (paid[nm] || 0) >= startStack[nm] - 1e-9);
+  /* everyone left has acted and nobody owes anything */
+  const closed = () => {
+    if (!opened) return false;
+    let facing = 0;
+    for (const p of hand.players) {
+      if (p.inHand === false || folded.has(p.name) || allIn(p.name)) continue;
+      facing++;
+      if (!acted.has(p.name) || max - (bet[p.name] || 0) > 1e-9) return false;
+    }
+    return facing > 0;
+  };
+  const commit = (nm, add) => {
+    bet[nm] = (bet[nm] || 0) + add;
+    paid[nm] = (paid[nm] || 0) + add;
+    if (bet[nm] > max) max = bet[nm];
+  };
+
+  hand.actions.forEach((a, i) => {
+    const t = a.type;
+    if (t === 'ante') { paid[a.name] = (paid[a.name] || 0) + a.amount; return; }
+    if (t === 'blind') { commit(a.name, a.amount); return; }
+    if (QUIET[t]) return;
+
+    if (closed()) { breaks.push(i); bet = {}; max = 0; acted = new Set(); opened = 0; }
+    acted.add(a.name); opened++;
+
+    if (t === 'fold') { folded.add(a.name); return; }
+    if (t === 'check') return;
+    if (t === 'call' || t === 'bet') { commit(a.name, a.amount); return; }
+    /* same reading buildFrames applies: a total if it beats the bet, else chips added */
+    if (t === 'raise') {
+      const to = a.to <= max + 1e-9 ? (bet[a.name] || 0) + a.to : a.to;
+      commit(a.name, to - (bet[a.name] || 0));
+    } else if (t === 'allin') {
+      const to = a.amount <= (bet[a.name] || 0) + 1e-9 ? (bet[a.name] || 0) + a.amount : a.amount;
+      commit(a.name, to - (bet[a.name] || 0));
+      shoved.add(a.name);
+    }
+  });
+
+  /* Cards the room did record still have to land somewhere: whatever is left
+     over once those rounds are dealt is a run-out nobody got to bet on. */
+  const rounds = Math.min(breaks.length, STREET_SEQ.length);
+  let extra = 0;
+  for (let i = rounds; i < STREET_SEQ.length; i++) {
+    if (STREET_FROM[STREET_SEQ[i]] >= hand.board.length) break;
+    extra++;
+  }
+  if (!rounds && !extra) return;
+
+  let n = 0;
+  const deal = () => {
+    const street = STREET_SEQ[n++];
+    return { type: 'street', street, run: 1,
+             cards: hand.board.slice(STREET_FROM[street], STREET_FROM[street] + STREET_SIZE[street]) };
+  };
+  const out = [];
+  let cut = 0;
+  hand.actions.forEach((a, i) => {
+    if (cut < rounds && breaks[cut] === i) { out.push(deal()); cut++; }
+    out.push(a);
+  });
+  /* a run-out nobody bet on belongs before the showdown, not after it */
+  let tail = out.length;
+  while (tail > 0 && QUIET[out[tail - 1].type]) tail--;
+  const runout = [];
+  for (let i = 0; i < extra; i++) runout.push(deal());
+  out.splice(tail, 0, ...runout);
+
+  let street = 'preflop';
+  for (const a of out) { if (a.type === 'street') street = a.street; else a.street = street; }
+  hand.actions = out;
+  hand.parseWarnings.push('Streets read from the betting — the hand did not mark them');
+}
+
 function finalise(hand) {
   if (!hand || !hand.players.length) return hand;
 
@@ -1941,6 +2041,9 @@ function bestParse(block, preferred) {
     const s = scoreParse(h);
     if (s > bestScore) { bestScore = s; best = h; }
   }
+  /* after the vote, not before it: inferred streets are not evidence that a
+     reading is the right one, so they must not sway which reading wins */
+  if (best) inferStreets(best);
   return best;
 }
 
@@ -2173,6 +2276,9 @@ function unpackHand(line) {
   h.board = unpackCards(f[5]);
   h.winners = h.actions.filter(a => a.type === 'collect').map(a => a.name);
   assignPositions(h);
+  /* links shared before the streets were worked out carry the betting but no
+     markers, and they are supposed to keep working */
+  inferStreets(h);
   return h;
 }
 
